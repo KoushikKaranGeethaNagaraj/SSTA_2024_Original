@@ -1,0 +1,20 @@
+# Ignore Python compiled files
+__pycache__/
+*.pyc
+*.pyo
+
+# Ignore all dataset directories
+DATASET/
+dataset_new/
+NEW_DATASET/
+
+# Ignore specific model directories if they contain large or unnecessary files
+ssta2_sim_model_128_MSE_ssim2_only_32_32_32_64/
+ssta2_sim_model_16_16_32_32_seq_100/
+ssta2_sim_model_32_32_32_32_seq_100/
+ssta2_sim_model_32_32_32_32_seq_150/
+ssta2_sim_model_64_64_64_32_seq_100/
+ssta2_sim_model_96_96_64_64_seq_100/
+ssta2_sim_model_ssim2_only_64_64_64_64/
+ssta2_sim_model_ssim_64_64_64_64/
+ssta2_sim_model_ssim_only_64_64_64_64/
