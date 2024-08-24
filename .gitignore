@@ -7,7 +7,7 @@ __pycache__/
 DATASET/
 dataset_new/
 NEW_DATASET/
-
+Pneuma_dataset/
 # Ignore specific model directories if they contain large or unnecessary files
 ssta2_sim_model_128_MSE_ssim2_only_32_32_32_64/
 ssta2_sim_model_16_16_32_32_seq_100/
@@ -18,3 +18,5 @@ ssta2_sim_model_96_96_64_64_seq_100/
 ssta2_sim_model_ssim2_only_64_64_64_64/
 ssta2_sim_model_ssim_64_64_64_64/
 ssta2_sim_model_ssim_only_64_64_64_64/
+old_ssta_sim_data/
+pneuma_vae_file/
