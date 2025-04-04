@@ -273,6 +273,28 @@ class DatasetUtility:
                         t2no_files[int(t2n_camera[-1])].extend([os.path.join(t2n_full_path, file) for file in sorted(os.listdir(t2n_full_path),key=self.numerical_sort)    if 't2no' in file])
            
         
+        
+        # for _,camera_view in enumerate(os.listdir(dataset_path)):
+        #     full_path = os.path.join(dataset_path, camera_view)
+        #     for _,folder_name in enumerate(os.listdir(full_path)):
+        #         folder_path = os.path.join(full_path, folder_name)
+
+        #         if folder_name=="images":
+        #                 dataset_files[int(camera_view[-1])].extend([os.path.join(folder_path, file) for file in sorted(os.listdir(folder_path),key=self.numerical_sort)])
+        #                 continue
+                
+        #         if folder_name=="t2no":
+        #                 t2no_files[int(camera_view[-1])].extend([os.path.join(folder_path, file) for file in sorted(os.listdir(folder_path),key=self.numerical_sort)])
+        #                 continue
+                
+        #         if folder_name=="t2nd":
+        #             t2nd_files[int(camera_view[-1])].extend([os.path.join(folder_path, file) for file in sorted(os.listdir(folder_path),key=self.numerical_sort)])
+        #             continue
+                   
+                
+        
+        # import sys
+        # sys.exit(0)
         ## Combine files alternately
         combined_files_dataset= []
         t2nd_combined_files_dataset= []
@@ -300,6 +322,8 @@ class DatasetUtility:
             # quit()
             return comb_files_dataset_np,t2nd_combined_files_dataset_np[..., np.newaxis],t2no_combined_files_dataset_np[..., np.newaxis]
 
+
+        # print(combined_files_dataset_np.shape)
         return combined_files_dataset_np
   
 

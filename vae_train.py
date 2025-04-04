@@ -503,9 +503,12 @@ if __name__ == "__main__":
     parser.add_argument('--device', type=str, default='cuda:0', help='cuda:0 cuda:0; cpu:0 cpu:0')
     parser.add_argument('--with_comm', type=str2bool, default=False, help='whether to use communication')
     #change this to train
-    parser.add_argument('--train_data_paths', type=str, default=r"DATASET\val")
-    # carla_town02_20211201
-    parser.add_argument('--valid_data_paths', type=str, default=r"DATASET\test")
+    parser.add_argument('--train_data_paths', type=str, default=r"dataset_01\val")
+        # carla_town02_20211201
+    parser.add_argument('--valid_data_paths', type=str, default=r"dataset_01\test")
+    parser.add_argument('--model_type', type=str, default="ssta")
+    parser.add_argument('--sequence_index_gap', type=int, default=10)
+
     # RGB dataset
     parser.add_argument('--img_width', type=int, default=128, help='img width')
     parser.add_argument('--num_views', type=int, default=2, help='num views')
@@ -513,7 +516,7 @@ if __name__ == "__main__":
 
     parser.add_argument('--baseline', type=str, default='SSTA_view_view',
                         help="SSTA_view_view,SSTA_views_1")# This parameter is used to prepare the dataset,alternate or making 4 view dataset to 1 view dataset(SSTA_views_1)
-    parser.add_argument('--gen_frm_dir', type=str, default= "/storage/home/hcoda1/9/knagaraj31/p-skousik3-0/SSTA_2022/sim_vae_files/vae_sim_model_32_16_8")
+    parser.add_argument('--gen_frm_dir', type=str, default= "./vae_training_files")
     parser.add_argument('--num_save_samples', type=int, default=10)
     parser.add_argument('--layer_norm', type=int, default=1)
     parser.add_argument('--num_hidden', type=str, default='32,16,8', help='64,64,64,64')
