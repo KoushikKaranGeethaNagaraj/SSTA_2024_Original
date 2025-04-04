@@ -198,12 +198,14 @@ def training(N, Nte, bs, n_epoch, act, data_mode, args):
 
         while (train_input_handle.no_batch_left() == False and args.mode == 'train'):
             ims = train_input_handle.get_batch()
+            print(ims.shape)
             print("input",ims.shape)
             
             train_input_handle.next()
             x_batch = ims[:, :]
             # gt_batch = ims[:, 1:]
             gt_batch = ims[:, args.num_past:]
+
             print(x_batch.shape,gt_batch.shape)
             x_batch = torch.from_numpy(x_batch.astype(np.float32)).to(args.device)  # .reshape(x.shape[0], 1))
             gt_batch = torch.from_numpy(gt_batch.astype(np.float32)).to(args.device)  # .reshape(gt.shape[0], 1))
@@ -211,6 +213,7 @@ def training(N, Nte, bs, n_epoch, act, data_mode, args):
             optimizer.zero_grad()
             pred_batch, message_batch, mu_batch, log_var_batch = run_steps(x_batch, model_0, None,
                                                   with_comm=args.with_comm, args=args)
+            
             
             recons_loss = MSE(pred_batch, gt_batch)
             kld_loss = torch.mean(-0.5 * torch.sum(1 + log_var_batch - mu_batch ** 2 - log_var_batch.exp(),
@@ -364,7 +367,8 @@ def training(N, Nte, bs, n_epoch, act, data_mode, args):
 
                     psnr[i] += batch_psnr(pred_frm, real_frm)
                     for b in range(y_test.shape[0]):
-                        score, _ = compare_ssim(pred_frm[b], real_frm[b], full=True, multichannel=True)
+                        score = compare_ssim(pred_frm[b], real_frm[b], full=False, channel_axis=-1)
+
                         ssim[i] += score
 
                 # save prediction examples
@@ -503,10 +507,10 @@ if __name__ == "__main__":
     parser.add_argument('--device', type=str, default='cuda:0', help='cuda:0 cuda:0; cpu:0 cpu:0')
     parser.add_argument('--with_comm', type=str2bool, default=False, help='whether to use communication')
     #change this to train
-    parser.add_argument('--train_data_paths', type=str, default=r"/home/knagaraj31/SSTA_2024_Original/Pneuma_dataset/pneuma_T2NOD_20181029_0_1_D2_0900_0930/test")
+    parser.add_argument('--train_data_paths', type=str, default=r"dataset_01\val")
         # carla_town02_20211201
-    parser.add_argument('--valid_data_paths', type=str, default=r"/home/knagaraj31/SSTA_2024_Original/Pneuma_dataset/pneuma_T2NOD_20181029_0_1_D2_0900_0930/test")
-    parser.add_argument('--model_type', type=str, default="ssta")
+    parser.add_argument('--valid_data_paths', type=str, default=r"dataset_01\test")
+    parser.add_argument('--model_type', type=str, default="vae")
     parser.add_argument('--sequence_index_gap', type=int, default=10)
 
     # RGB dataset

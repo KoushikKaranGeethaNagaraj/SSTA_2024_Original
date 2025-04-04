@@ -134,7 +134,7 @@ class DataProcess:
             frames_np=self.datautility.dataset_SSTA_alternator(path)
         data = np.zeros((frames_np.shape[0], self.image_width, self.image_width, self.img_channel))
         
-        print(frames_np.shape,t2nd_frames_np.shape,t2no_frames_np.shape)
+        # print(frames_np.shape,t2nd_frames_np.shape,t2no_frames_np.shape)
         
 
         for i in range(len(frames_np)):
@@ -257,39 +257,39 @@ class DatasetUtility:
         t2nd_files=[[] for _ in range(self.total_views)]
         
 
-        for _,camera_view in enumerate(os.listdir(dataset_path)):
-            full_path = os.path.join(dataset_path, camera_view)
+        # for _,camera_view in enumerate(os.listdir(dataset_path)):
+        #     full_path = os.path.join(dataset_path, camera_view)
   
-            if camera_view[0]=="c":
-                    dataset_files[int(camera_view[-1])].extend([os.path.join(full_path, file) for file in sorted(os.listdir(full_path),key=self.numerical_sort)])
-                    continue
+        #     if camera_view[0]=="c":
+        #             dataset_files[int(camera_view[-1])].extend([os.path.join(full_path, file) for file in sorted(os.listdir(full_path),key=self.numerical_sort)])
+        #             continue
           
-            if self.t2n and camera_view[0]!="c":
-                for _,t2n_camera in enumerate(os.listdir(full_path)):
-                    t2n_full_path = os.path.join(full_path, t2n_camera)
-                    if t2n_camera[0]=="c":
-                        t2nd_files[int(t2n_camera[-1])].extend([os.path.join(t2n_full_path, file) for file in sorted(os.listdir(t2n_full_path),key=self.numerical_sort)    if 't2nd' in file])
+        #     if self.t2n and camera_view[0]!="c":
+        #         for _,t2n_camera in enumerate(os.listdir(full_path)):
+        #             t2n_full_path = os.path.join(full_path, t2n_camera)
+        #             if t2n_camera[0]=="c":
+        #                 t2nd_files[int(t2n_camera[-1])].extend([os.path.join(t2n_full_path, file) for file in sorted(os.listdir(t2n_full_path),key=self.numerical_sort)    if 't2nd' in file])
 
-                        t2no_files[int(t2n_camera[-1])].extend([os.path.join(t2n_full_path, file) for file in sorted(os.listdir(t2n_full_path),key=self.numerical_sort)    if 't2no' in file])
+        #                 t2no_files[int(t2n_camera[-1])].extend([os.path.join(t2n_full_path, file) for file in sorted(os.listdir(t2n_full_path),key=self.numerical_sort)    if 't2no' in file])
            
         
         
-        # for _,camera_view in enumerate(os.listdir(dataset_path)):
-        #     full_path = os.path.join(dataset_path, camera_view)
-        #     for _,folder_name in enumerate(os.listdir(full_path)):
-        #         folder_path = os.path.join(full_path, folder_name)
+        for _,camera_view in enumerate(os.listdir(dataset_path)):
+            full_path = os.path.join(dataset_path, camera_view)
+            for _,folder_name in enumerate(os.listdir(full_path)):
+                folder_path = os.path.join(full_path, folder_name)
 
-        #         if folder_name=="images":
-        #                 dataset_files[int(camera_view[-1])].extend([os.path.join(folder_path, file) for file in sorted(os.listdir(folder_path),key=self.numerical_sort)])
-        #                 continue
+                if folder_name=="images":
+                        dataset_files[int(camera_view[-1])].extend([os.path.join(folder_path, file) for file in sorted(os.listdir(folder_path),key=self.numerical_sort)])
+                        continue
                 
-        #         if folder_name=="t2no":
-        #                 t2no_files[int(camera_view[-1])].extend([os.path.join(folder_path, file) for file in sorted(os.listdir(folder_path),key=self.numerical_sort)])
-        #                 continue
+                if self.t2n and folder_name=="t2no":
+                        t2no_files[int(camera_view[-1])].extend([os.path.join(folder_path, file) for file in sorted(os.listdir(folder_path),key=self.numerical_sort)])
+                        continue
                 
-        #         if folder_name=="t2nd":
-        #             t2nd_files[int(camera_view[-1])].extend([os.path.join(folder_path, file) for file in sorted(os.listdir(folder_path),key=self.numerical_sort)])
-        #             continue
+                if self.t2n and folder_name=="t2nd":
+                    t2nd_files[int(camera_view[-1])].extend([os.path.join(folder_path, file) for file in sorted(os.listdir(folder_path),key=self.numerical_sort)])
+                    continue
                    
                 
         
