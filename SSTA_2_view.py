@@ -583,3 +583,4 @@ if __name__ == "__main__":
 # #     for testing:
 #     args.valid_data_paths = "/storage/home/hcoda1/9/knagaraj31/p-skousik3-0/test".format(args.data_name)
     training(args.N, args.Nte, args.bs, args.n_epoch, args.act, args.data_mode, args)
+  #######use SSTA_n_view file
