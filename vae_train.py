@@ -468,8 +468,7 @@ def batch_psnr(gen_frames, gt_frames):
     x = np.int32(gen_frames)
     y = np.int32(gt_frames)
     num_pixels = float(np.size(gen_frames[0]))
-    mse = np.sum((x - y) ** 2, axis=axis, dtype=np.float32) / num_pixels, out_channels, hidden_channels, n_layers=1, batch_size=16, multiplier=1, conv_type='3d'):
-        super(GaussianConvLSTM, self).__init__()
+    mse = np.sum((x - y) ** 2, axis=axis, dtype=np.float32) / num_pixels
     psnr = 20 * np.log10(255) - 10 * np.log10(mse)
     return np.mean(psnr)
 
