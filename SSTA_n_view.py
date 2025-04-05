@@ -312,8 +312,9 @@ def training(n_epoch, act,args):
                     gt_channel_split= torch.split(gt_batch, gt_batch.shape[-1] // args.num_views, dim=-1)
                     gt_batch = torch.cat([t[..., -2:] for t in gt_channel_split], dim=-1)
 
-                    for optimizer in optimizers:
-                        optimizer.zero_grad()   
+                    for ssta_key in optimizers:
+                        optimizers[ssta_key].zero_grad()
+
                     pred_batch, message_batch = run_steps(x_batch, models, optimizers, connections, vae,
                                                         inference=False, args=args)
                     
