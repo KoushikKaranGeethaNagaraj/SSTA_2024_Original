@@ -343,24 +343,24 @@ def training(n_epoch, act,args):
                         # print(torch.unique(thresh_pd_t2no),torch.unique(thresh_gt_t2no))
 
 
-                        # loss_t2no_mse=MSE(loss_pd_channel_split[i][:,:,:,:,0],loss_gt_channel_split[i][:,:,:,:,0])
-                        # loss_t2nd=MSE(loss_pd_channel_split[i][:,:,:,:,1],loss_gt_channel_split[i][:,:,:,:,1])
-                        loss_t2no_bce=BCE(loss_pd_channel_split[i][:,:,:,:,0],loss_gt_channel_split[i][:,:,:,:,0])
+                        loss_t2no_mse=MSE(loss_pd_channel_split[i][:,:,:,:,0],loss_gt_channel_split[i][:,:,:,:,0])
+                        loss_t2nd=MSE(loss_pd_channel_split[i][:,:,:,:,1],loss_gt_channel_split[i][:,:,:,:,1])
+                        # loss_t2no_bce=BCE(loss_pd_channel_split[i][:,:,:,:,0],loss_gt_channel_split[i][:,:,:,:,0])
                         # print(loss_t2no_bce,loss_t2no_mse)
                         # loss_t2no=(args.alpha*loss_t2no_mse)+(args.alpha2*loss_t2no_bce)
                         # loss_t2no=loss_t2no_bce
-                        t2no_ssim_loss = -ssim_loss(loss_pd_channel_split[i][:,:,:,:,0], loss_gt_channel_split[i][:,:,:,:,0])
-                        loss_t2no=loss_t2no_bce
+                        # t2no_ssim_loss = -ssim_loss(loss_pd_channel_split[i][:,:,:,:,0], loss_gt_channel_split[i][:,:,:,:,0])
+                        # loss_t2no=loss_t2no_bce
                         # print(t2no_ssim_loss,loss_t2no_mse)
-                        # loss+=(args.alpha*loss_t2no)+(args.beta*loss_t2nd)
+                        loss+=(args.alpha*loss_t2no_mse)+(args.beta*loss_t2nd)
                 
                     # print("old",loss)
                     ######
 
                     sum_loss += loss.data * args.bs
-                    # loss.backward()
-                    # for optimizer in optimizers:
-                    #     optimizer.step()
+                    loss.backward()
+                    for optimizer in optimizers:
+                        optimizer.step()
                     
                     # N+=pred_batch.shape[1]* args.bs
                     N+=1
