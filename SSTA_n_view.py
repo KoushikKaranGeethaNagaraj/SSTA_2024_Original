@@ -319,17 +319,17 @@ def training(n_epoch, act,args):
                                                         inference=False, args=args)
                     
                     #MSE LOSS-together
-                    loss = MSE(pred_batch, gt_batch)
+                    # loss = MSE(pred_batch, gt_batch)
                     ##
 
 
                     # #####Loss seperated as T2NO and T2nD for each view and ##threshold
-                    # loss_gt_channel_split= torch.split(gt_batch, gt_batch.shape[-1] // args.num_views, dim=-1)
-                    # loss_pd_channel_split=torch.split(pred_batch, gt_batch.shape[-1] // args.num_views, dim=-1)
+                    loss_gt_channel_split= torch.split(gt_batch, gt_batch.shape[-1] // args.num_views, dim=-1)
+                    loss_pd_channel_split=torch.split(pred_batch, gt_batch.shape[-1] // args.num_views, dim=-1)
 
             
-                    # loss=0.0
-                    # for i in range(len(loss_gt_channel_split)):
+                    loss=0.0
+                    for i in range(len(loss_gt_channel_split)):
                     #     ##threshold
                     #     # thresh_pd_t2no=loss_pd_channel_split[i][:,:,:,:,0]*255
                     #     # inverse_gt_t2no=loss_gt_channel_split[i][:,:,:,:,0]
@@ -346,8 +346,8 @@ def training(n_epoch, act,args):
                     #     # print(torch.unique(thresh_pd_t2no),torch.unique(thresh_gt_t2no))
 
 
-                    #     loss_t2no_mse=MSE(loss_pd_channel_split[i][:,:,:,:,0],loss_gt_channel_split[i][:,:,:,:,0])
-                    #     loss_t2nd=MSE(loss_pd_channel_split[i][:,:,:,:,1],loss_gt_channel_split[i][:,:,:,:,1])
+                        loss_t2no_mse=MSE(loss_pd_channel_split[i][:,:,:,:,0],loss_gt_channel_split[i][:,:,:,:,0])
+                        loss_t2nd_mse=MSE(loss_pd_channel_split[i][:,:,:,:,1],loss_gt_channel_split[i][:,:,:,:,1])
                     #     # loss_t2no_bce=BCE(loss_pd_channel_split[i][:,:,:,:,0],loss_gt_channel_split[i][:,:,:,:,0])
                     #     # print(loss_t2no_bce,loss_t2no_mse)
                     #     # loss_t2no=(args.alpha*loss_t2no_mse)+(args.alpha2*loss_t2no_bce)
@@ -355,12 +355,12 @@ def training(n_epoch, act,args):
                     #     # t2no_ssim_loss = -ssim_loss(loss_pd_channel_split[i][:,:,:,:,0], loss_gt_channel_split[i][:,:,:,:,0])
                     #     # loss_t2no=loss_t2no_bce
                     #     # print(t2no_ssim_loss,loss_t2no_mse)
-                    #     loss+=(args.alpha*loss_t2no_mse)+(args.beta*loss_t2nd)
+                        loss+=(args.alpha*loss_t2no_mse)+(args.beta*loss_t2nd_mse)
                 
                     # print("old",loss)
                     ######
 
-                    # sum_loss += loss.data * args.bs
+                    sum_loss += loss.data * args.bs
                     # loss.backward()
                     # for optimizer in optimizers:
                     #     optimizer.step()
@@ -765,8 +765,8 @@ if __name__ == "__main__":
     parser.add_argument('--n_epoch', type=int, default=300, help='200')
     parser.add_argument('--continue_epoch', type=int, default=0, help='200')
 
-    parser.add_argument('--bs', type=int, default=10)
-    parser.add_argument('--vis_bs', type=int, default=5)
+    parser.add_argument('--bs', type=int, default=3)
+    parser.add_argument('--vis_bs', type=int, default=3)
     parser.add_argument('--disp_eval_images', type=int, default=60)
     parser.add_argument('--save_eval_images', type=bool, default=True)
     parser.add_argument('--mask_per_step', type=int, default=1000000000)
