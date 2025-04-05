@@ -791,11 +791,11 @@ if __name__ == "__main__":
     parser.add_argument('--vae_latent_dim', type=int, default=4)
     #File paths
     #file to save ssta results
-    parser.add_argument('--gen_frm_dir', type=str, default=r'ssta_32_32_32_32_apr4_25')
+    parser.add_argument('--gen_frm_dir', type=str, default=r'./ssta_32_32_32_32_apr4_25')
     parser.add_argument('--train_data_paths', type=str, default=r"./dataset_01/train")
-    parser.add_argument('--valid_data_paths', type=str, default=r"./dataset_01/train")
+    parser.add_argument('--valid_data_paths', type=str, default=r"./dataset_01/val")
     parser.add_argument('--vae_ckpt_dir', type=str, default=r"./vae_file",help='None')
-    parser.add_argument('--ckpt_dir', type=str, default=r'/home/knagaraj31/SSTA_2024_Original/ssta_trained/pn_inference_32_32_32_32_t2no15/SSTA_model/1', help='checkpoint dir')
+    parser.add_argument('--ckpt_dir', type=str, default=r'./ssta_trained/pn_inference_32_32_32_32_t2no15/SSTA_model/1', help='checkpoint dir')
 
     args = parser.parse_args()
     args.gen_frm_dir = os.path.join(args.gen_frm_dir)
