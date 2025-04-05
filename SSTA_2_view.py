@@ -554,7 +554,7 @@ if __name__ == "__main__":
     parser.add_argument('--baseline', type=str, default='1_NN_4_img_GCN',
                         help='1_NN_1_img_no_GCN, 1_NN_4_img_no_GCN, 4_NN_4_img_GCN, 1_NN_4_img_GCN, 4_NN_4_img_no_GCN, '
                              '4_NN_4_img_FC, 4_NN_4_img_Identity')
-    parser.add_argument('--gen_frm_dir', type=str, default='/home/sgarikipati7/SSTA_2024/preds_vaessta')
+    parser.add_argument('--gen_frm_dir', type=str, default=r'./ssta_32_32_32_32_apr4_25')
     parser.add_argument('--num_save_samples', type=int, default=10)
     parser.add_argument('--layer_norm', type=int, default=1)
     parser.add_argument('--num_hidden', type=str, default='16,16', help='64,64,64,64')
@@ -564,13 +564,13 @@ if __name__ == "__main__":
     parser.add_argument('--message_type', type=str, default='vae', help='normal, zeros, randn, raw_data, vae')
     
     parser.add_argument('--ckpt_dir', type=str, default='/storage/home/hcoda1/9/knagaraj31/p-skousik3-0/SSTA_2022/sim_SSTA2_files/ssta2_sim_model_16_8/SSTA_model_0_1/5', help='checkpoint dir: dir/model_1.pt, 20220717-195317')
-    parser.add_argument('--vae_ckpt_dir', type=str, default="/home/sgarikipati7/SSTA_2024/vae_file",
+    parser.add_argument('--vae_ckpt_dir', type=str, default=r"./vae_file",
                         help='vae checkpoint dir: kessel: 1c-results/20220109-212140/circle_motion/vae.pt, '
                              '20220110-234817, chpc-gpu005: 1c-20220113-154323, wo ln: 20220117-044713')
     parser.add_argument('--cl_mode', type=str, default='full_history', help='full_history, sliding_window')
     parser.add_argument('--vae_latent_dim', type=int, default=4)
-    parser.add_argument('--train_data_paths', type=str, default=r"/home/sgarikipati7/SSTA_2024/DATASET/test")
-    parser.add_argument('--valid_data_paths', type=str, default=r"/home/sgarikipati7/SSTA_2024/DATASET/val")
+    parser.add_argument('--train_data_paths', type=str, default=r"./dataset_01/train")
+    parser.add_argument('--valid_data_paths', type=str, default=r"./dataset_01/val")
 
     args = parser.parse_args()
 
