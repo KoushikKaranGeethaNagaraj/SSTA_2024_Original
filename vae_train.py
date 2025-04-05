@@ -142,7 +142,6 @@ def run_steps(x_batch, model_0, model_1, with_comm=True, args=None):
 
 
 def training(N, Nte, bs, n_epoch, act, data_mode, args):
-    # x_train, t_train, x_test, t_test, step_test = get_data(N, Nte, num_step, data_mode)
     train_input_handle, test_input_handle = data_provider(
         args.data_name, args.train_data_paths, args.valid_data_paths, args.bs, args.img_width,
         seq_length=args.num_step + args.num_past, is_training=True, num_views=args.num_views, img_channel=args.img_channel,

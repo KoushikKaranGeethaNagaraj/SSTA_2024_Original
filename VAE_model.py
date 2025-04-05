@@ -125,6 +125,7 @@ class VanillaVAE(nn.Module):
         """
         std = torch.exp(0.5 * logvar)
         # eps = torch.randn_like(std)
+        eps = torch.zeros_like(std)
         eps = torch.ones_like(std)
         return eps * std + mu
 
