@@ -507,7 +507,7 @@ if __name__ == "__main__":
     parser.add_argument('--device', type=str, default='cuda:0', help='cuda:0 cuda:0; cpu:0 cpu:0')
     parser.add_argument('--with_comm', type=str2bool, default=False, help='whether to use communication')
     #change this to train
-    parser.add_argument('--train_data_paths', type=str, default=r"dataset_01\val")
+    parser.add_argument('--train_data_paths', type=str, default=r"dataset_01\train")
         # carla_town02_20211201
     parser.add_argument('--valid_data_paths', type=str, default=r"dataset_01\test")
     parser.add_argument('--model_type', type=str, default="vae")

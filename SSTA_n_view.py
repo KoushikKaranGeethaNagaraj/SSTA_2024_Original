@@ -265,7 +265,7 @@ def training(n_epoch, act,args):
     # print('Loaded VAE model_0 from {}'.format(vae_path))
     # vae = VanillaVAE(input_dim, h_units, act, args)
     vae_path = os.path.join(args.vae_ckpt_dir, 'vae.pt')
-    vae = torch.load(vae_path)
+    vae = torch.load(vae_path,weights_only=False)
     vae = vae.to(args.device)
     print('Loaded VAE model_0 from {}'.format(vae_path))
 
@@ -746,7 +746,7 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser("cifar")
     parser.add_argument('--model_type', type=str, default='ssta',help='ssta / vae')
-    parser.add_argument('--data_name', type=str, default='ssta_2024')
+    parser.add_argument('--data_name', type=str, default='ssta_2025')
     parser.add_argument('--act', type=str, default="relu", help='relu')
     parser.add_argument('--mode', type=str, default="train", help='train / eval/transfer_learning')
     parser.add_argument('--eval_mode', type=str, default='single_step_eval', help='multi_step_eval / single_step_eval')
@@ -755,14 +755,15 @@ if __name__ == "__main__":
     parser.add_argument('--num_views', type=int, default=2, help='num views')
     parser.add_argument('--train_sequence', type=int, default=15)
     parser.add_argument('--test_sequence', type=int, default=15)
+
     #the step of start index of sequence
     parser.add_argument('--sequence_index_gap', type=int, default=10)
 
     parser.add_argument('--n_epoch', type=int, default=300, help='200')
     parser.add_argument('--continue_epoch', type=int, default=0, help='200')
 
-    parser.add_argument('--bs', type=int, default=1)
-    parser.add_argument('--vis_bs', type=int, default=1)
+    parser.add_argument('--bs', type=int, default=10)
+    parser.add_argument('--vis_bs', type=int, default=5)
     parser.add_argument('--disp_eval_images', type=int, default=60)
     parser.add_argument('--save_eval_images', type=bool, default=True)
     parser.add_argument('--mask_per_step', type=int, default=1000000000)
@@ -770,15 +771,15 @@ if __name__ == "__main__":
    
     parser.add_argument('--alpha', type=float, default=9)
     parser.add_argument('--beta', type=float, default=1)
-    parser.add_argument('--threshold_time_step', type=int, default=15,help="timestep of t2no/t2nd")
+    parser.add_argument('--threshold_time_step', type=int, default=100,help="timestep of t2no/t2nd")
     ##
     parser.add_argument('--device', type=str, default='cuda:0', help='cuda:0 cuda:0; cpu:0 cpu:0')
 
     # parser.add_argument('--num_step', type=int, default=15)
-    parser.add_argument('--num_past', type=int, default=2)
+    parser.add_argument('--num_past', type=int, default=4)
 
     # RGB dataset
-    parser.add_argument('--img_width', type=int, default=256, help='img width')
+    parser.add_argument('--img_width', type=int, default=128, help='img width')
     parser.add_argument('--img_channel', type=int, default=3, help='img channel')
   
     parser.add_argument('--num_save_samples', type=int, default=10)
@@ -790,10 +791,10 @@ if __name__ == "__main__":
     parser.add_argument('--vae_latent_dim', type=int, default=4)
     #File paths
     #file to save ssta results
-    parser.add_argument('--gen_frm_dir', type=str, default=r'/home/knagaraj31/SSTA_2024_Original/ssta_trained/pn_inference_32_32_32_32_t2no15')
-    parser.add_argument('--train_data_paths', type=str, default=r"/home/knagaraj31/SSTA_2024_Original/Pneuma_dataset/pneuma_T2NOD_20181029_0_1_D2_0900_0930/train")
-    parser.add_argument('--valid_data_paths', type=str, default=r"/home/knagaraj31/SSTA_2024_Original/Pneuma_dataset/pneuma_T2NOD_20181029_0_1_D2_0900_0930/test")
-    parser.add_argument('--vae_ckpt_dir', type=str, default=r"/home/knagaraj31/SSTA_2024_Original/vae_trained/vae_sim_model_32_16_8_latent000000rand/best_model_vae/99",help='None')
+    parser.add_argument('--gen_frm_dir', type=str, default=r'ssta_32_32_32_32_apr4_25')
+    parser.add_argument('--train_data_paths', type=str, default=r"./dataset_01/train")
+    parser.add_argument('--valid_data_paths', type=str, default=r"./dataset_01/train")
+    parser.add_argument('--vae_ckpt_dir', type=str, default=r"./vae_file",help='None')
     parser.add_argument('--ckpt_dir', type=str, default=r'/home/knagaraj31/SSTA_2024_Original/ssta_trained/pn_inference_32_32_32_32_t2no15/SSTA_model/1', help='checkpoint dir')
 
     args = parser.parse_args()
