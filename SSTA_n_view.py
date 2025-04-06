@@ -37,10 +37,9 @@ class SSTA_Net(nn.Module):
         # [10, 128, 128, 5]
         self.filter_size = args.filter_size
         self.padding = self.filter_size // 2
-        print(h_units)
 
         self.frame_predictor = DeterministicConvLSTM(input_dim, h_units[-1], h_units[0], len(h_units), args)
-        self.l3 = nn.Conv3d(h_units[-1], 2, kernel_size=self.filter_size, stride=1, padding=self.padding, bias=False)
+        self.l3 = nn.Conv3d(h_units[-1], args.ssta_output_channels, kernel_size=self.filter_size, stride=1, padding=self.padding, bias=False)
 
         if act == "relu":
             self.act = F.relu
@@ -193,15 +192,17 @@ def run_steps(x_batch, models, optimizers, connections, vae, inference = True, a
                 gt_train =  x_t[view][:, t:t + 1,:,:, 3:]
                 # print(x_t_pred.shape, x_t_prev_preds[view].shape, gt_train.shape)
 
-                ce_gt_train = gt_train[-1, args.threshold_time_step]
-                ce_pd_train = x_t_pred[-1, args.threshold_time_step]
+                # ce_gt_train = gt_train[-1, args.threshold_time_step]
+                # ce_pd_train = x_t_pred[-1, args.threshold_time_step]
 
 
 
-                # print(x_t_pred.shape, gt_train.shape)
+                print(x_t_pred.shape, gt_train.shape)
                 # print(x_t_pred[0], gt_train[0])
+                import sys
+                sys.exit(0)
 
-                loss = CE(ce_pd_train, ce_gt_train)
+                # loss = CE(ce_pd_train, ce_gt_train)
 
                 # loss = MSE(x_t_pred, gt_train)
 
@@ -610,6 +611,7 @@ if __name__ == "__main__":
     parser.add_argument('--message_type', type=str, default='vae', help='normal, zeros, randn, raw_data, vae')
     #trained vae model latent dimesion same as loaded model
     parser.add_argument('--vae_latent_dim', type=int, default=5)
+    parser.add_argument('--ssta_output_channels', type=int, default=100,help="timestep of t2no/t2nd")
     #File paths
     #file to save ssta results
     parser.add_argument('--gen_frm_dir', type=str, default=r'./ssta_32_32_32_32_apr6_25_latent5')
