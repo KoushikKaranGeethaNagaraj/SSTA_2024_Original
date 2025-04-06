@@ -60,6 +60,8 @@ class SSTA_Net(nn.Module):
         message = m_t
         message = None
         pred_x_tp1 = pred_x_tp1.permute(0, 2, 3, 4, 1)
+        B, T, H, W, C = pred_x_tp1.shape  # C should be 200
+        pred_x_tp1 = pred_x_tp1.view(B, T, H, W, 2, C )
         pred_x_tp1 = F.sigmoid(pred_x_tp1)
         return pred_x_tp1, message, frame_predictor_hidden
 
