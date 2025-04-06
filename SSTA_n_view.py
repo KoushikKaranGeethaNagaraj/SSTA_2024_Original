@@ -299,7 +299,7 @@ def training(n_epoch, act,args):
                 loss=0.0
                 print('Training ... {}'.format(epoch))
                 train_input_handle.begin(do_shuffle=True)
-                progress_bar = tqdm(total=train_input_handle.total()-1, desc='Epoch Completion')
+                progress_bar = tqdm(total=train_input_handle.total()-200, desc='Epoch Completion')
                 
                 while (train_input_handle.no_batch_left() == False):
                      
@@ -614,8 +614,8 @@ if __name__ == "__main__":
     #File paths
     #file to save ssta results
     parser.add_argument('--gen_frm_dir', type=str, default=r'./ssta_32_32_32_32_apr6_25_latent5')
-    parser.add_argument('--train_data_paths', type=str, default=r"./dataset_02/val")
-    parser.add_argument('--valid_data_paths', type=str, default=r"./dataset_02/val")
+    parser.add_argument('--train_data_paths', type=str, default=r"./dataset_02/train")
+    parser.add_argument('--valid_data_paths', type=str, default=r"./dataset_02/test")
     parser.add_argument('--vae_ckpt_dir', type=str, default=r"./vae_file_latent5",help='None')
     parser.add_argument('--ckpt_dir', type=str, default=r'./ssta_trained/pn_inference_32_32_32_32_t2no15/SSTA_model/1', help='checkpoint dir')
 
