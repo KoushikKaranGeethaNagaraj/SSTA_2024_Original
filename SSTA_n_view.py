@@ -123,7 +123,6 @@ def run_steps(x_batch, models, optimizers, connections, vae, inference = True, a
                 
                 x_t_pred, messages[ssta_key], memory[view] = model(x_t_prev_preds[view], messages[ssta_key], message_others, memory[view])
 
-                print("modelout",x_t_pred.shape)
                 
                 if args.message_type in ['vae']:
                     if t < args.num_past or np.random.uniform(0, 1) > (1-1/args.mask_per_step):  # t % args.mask_per_step == 0:
@@ -171,6 +170,7 @@ def run_steps(x_batch, models, optimizers, connections, vae, inference = True, a
                 message_others = get_relevant_msgs(ssta_key, messages, connections)
                 # print(x_t_prev_preds[view].shape, messages[ssta_key].shape, len(message_others),print(memory[view]))
                 x_t_pred, messages[ssta_key], memory_temp = model(x_t_prev_preds[view], messages[ssta_key], message_others, memory[view])
+                print("modelout",x_t_pred.shape)
                 
                 memory[view] = [(mem1.detach(), mem2.detach()) for mem1,mem2 in memory_temp]
 
