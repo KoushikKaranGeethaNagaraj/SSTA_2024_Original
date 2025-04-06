@@ -322,6 +322,8 @@ def training(n_epoch, act,args):
                     pred_batch, message_batch ,loss = run_steps(x_batch, models, optimizers, connections, vae,
                                                         inference=False, args=args)
                     
+                    
+                    print(pred_batch.shape,gt_batch.shape)
                     if args.loss_fn=="ce": 
                         pred_batch = pred_batch.argmax(dim=-1)  # This will reduce the last dimension
 
@@ -378,9 +380,8 @@ def training(n_epoch, act,args):
                         file_name = os.path.join(path, name)
                         t2no_img_pd = pred_batch[0, i, :, :,
                                 (view_idx * 2):((view_idx *2) +1)]
-                        print(t2no_img_pd.shape)
                         t2no_img_pd = ((t2no_img_pd * 255))                        
-                        if t2no_img_pd.shape[-1]!=0: cv2.imwrite(file_name, np.uint8(t2no_img_pd))
+                        cv2.imwrite(file_name, np.uint8(t2no_img_pd))
 
                     for i in range(gt_batch.shape[1]):
                         name = 'gtt2n0_{0:02d}_{1:02d}.png'.format(i + 1, view_idx)
@@ -396,7 +397,7 @@ def training(n_epoch, act,args):
                         t2nd_img_pd = pred_batch[0, i, :, :,
                                 (view_idx * 2)+1:((view_idx *2)+2 )]
                         t2nd_img_pd = ((t2nd_img_pd * 255))                        
-                        if t2no_img_pd.shape[-1]!=0: cv2.imwrite(file_name, np.uint8(t2nd_img_pd))
+                        cv2.imwrite(file_name, np.uint8(t2nd_img_pd))
 
                     for i in range(gt_batch.shape[1]):
                         name = 'gtt2nd_{0:02d}_{1:02d}.png'.format(i + 1, view_idx)
@@ -487,7 +488,7 @@ def training(n_epoch, act,args):
                         t2no_img_pd = pred_batch[0, i, :, :,
                                 (view_idx * 2):((view_idx *2) +1)]
                         t2no_img_pd = ((t2no_img_pd * 255))                        
-                        if t2no_img_pd.shape[-1]!=0: cv2.imwrite(file_name, np.uint8(t2no_img_pd))
+                        cv2.imwrite(file_name, np.uint8(t2no_img_pd))
 
                         name = 'gtt2n0_{0:02d}_{1:02d}.png'.format(iter, view_idx)
                         file_name = os.path.join(path, name)
@@ -502,7 +503,7 @@ def training(n_epoch, act,args):
                         t2nd_img_pd = pred_batch[0, i, :, :,
                                 (view_idx * 2)+1:((view_idx *2)+2 )]
                         t2nd_img_pd = ((t2nd_img_pd * 255))                        
-                        if t2no_img_pd.shape[-1]!=0: cv2.imwrite(file_name, np.uint8(t2nd_img_pd))
+                        cv2.imwrite(file_name, np.uint8(t2nd_img_pd))
 
 
                         name = 'gtt2nd_{0:02d}_{1:02d}.png'.format(iter, view_idx)
