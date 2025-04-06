@@ -37,6 +37,7 @@ class SSTA_Net(nn.Module):
         # [10, 128, 128, 5]
         self.filter_size = args.filter_size
         self.padding = self.filter_size // 2
+        print(h_units)
 
         self.frame_predictor = DeterministicConvLSTM(input_dim, h_units[-1], h_units[0], len(h_units), args)
         self.l3 = nn.Conv3d(h_units[-1], 2, kernel_size=self.filter_size, stride=1, padding=self.padding, bias=False)
