@@ -308,8 +308,8 @@ def training(n_epoch, act,args):
                     gt_channel_split= torch.split(gt_batch, gt_batch.shape[-1] // args.num_views, dim=-1)
                     gt_batch = torch.cat([t[..., -2:] for t in gt_channel_split], dim=-1)
 
-                    # for ssta_key in optimizers:
-                    #     optimizers[ssta_key].zero_grad()
+                    loss=0.0
+                    CE = nn.CrossEntropyLoss()
 
                     pred_batch, message_batch = run_steps(x_batch, models, optimizers, connections, vae,
                                                         inference=False, args=args)
@@ -318,52 +318,45 @@ def training(n_epoch, act,args):
                     # loss = MSE(pred_batch, gt_batch)
                     ##
 
-
                     # #####Loss seperated as T2NO and T2nD for each view and ##threshold
                     loss_gt_channel_split= torch.split(gt_batch, gt_batch.shape[-1] // args.num_views, dim=-1)
                     loss_pd_channel_split=torch.split(pred_batch, gt_batch.shape[-1] // args.num_views, dim=-1)
 
-            
-                    loss=0.0
+                    # for i in range(len(loss_gt_channel_split)):
+       
+                    #     loss_t2no_mse=MSE(loss_pd_channel_split[i][:,:,:,:,0],loss_gt_channel_split[i][:,:,:,:,0])
+                    #     loss_t2nd_mse=MSE(loss_pd_channel_split[i][:,:,:,:,1],loss_gt_channel_split[i][:,:,:,:,1])
+                    # #     # loss_t2no_bce=BCE(loss_pd_channel_split[i][:,:,:,:,0],loss_gt_channel_split[i][:,:,:,:,0])
+                    # #     # print(loss_t2no_bce,loss_t2no_mse)
+                    # #     # loss_t2no=(args.alpha*loss_t2no_mse)+(args.alpha2*loss_t2no_bce)
+                    # #     # loss_t2no=loss_t2no_bce
+                    # #     # t2no_ssim_loss = -ssim_loss(loss_pd_channel_split[i][:,:,:,:,0], loss_gt_channel_split[i][:,:,:,:,0])
+                    # #     # loss_t2no=loss_t2no_bce
+                    # #     # print(t2no_ssim_loss,loss_t2no_mse)
+                    #     loss+=(args.alpha*loss_t2no_mse)+(args.beta*loss_t2nd_mse)
+
                     for i in range(len(loss_gt_channel_split)):
-                    #     ##threshold
-                    #     # thresh_pd_t2no=loss_pd_channel_split[i][:,:,:,:,0]*255
-                    #     # inverse_gt_t2no=loss_gt_channel_split[i][:,:,:,:,0]
-                    #     # # print(inverse_gt_t2no)
-                    #     # inverse_gt_t2no = inverse_gt_t2no.float()/50.0
-                    #     # inverse_gt_t2no[torch.isinf(inverse_gt_t2no)] = 0.000000000000001
-                    #     # a=inverse_gt_t2no[0,0,:,:].detach().cpu().numpy()
-                    #     # print(a)
-                    #     # print(a*255)
-                    #     # print(np.unique(a*255))
-                    #     # cv2.imwrite("a.jpg",a*255)
-                    #     # import sys
-                    #     # sys.exit(0)
-                    #     # print(torch.unique(thresh_pd_t2no),torch.unique(thresh_gt_t2no))
+                        gt_labels = torch.zeros_like(loss_gt_channel_split[i][:,:,:,:,0]).long()
+                        gt_labels[loss_gt_channel_split[i][:,:,:,:,0] > 0.5] = 1  # T2NO
+                        gt_labels[loss_gt_channel_split[i][:,:,:,:,1] > 0.5] = 2  # T2ND
 
+                        pred_logits = torch.stack([
+                            1 - (loss_pd_channel_split[i][:,:,:,:,0] + loss_pd_channel_split[i][:,:,:,:,1]),
+                            loss_pd_channel_split[i][:,:,:,:,0],
+                            loss_pd_channel_split[i][:,:,:,:,1],
+                        ], dim=1)
 
-                        loss_t2no_mse=MSE(loss_pd_channel_split[i][:,:,:,:,0],loss_gt_channel_split[i][:,:,:,:,0])
-                        loss_t2nd_mse=MSE(loss_pd_channel_split[i][:,:,:,:,1],loss_gt_channel_split[i][:,:,:,:,1])
-                    #     # loss_t2no_bce=BCE(loss_pd_channel_split[i][:,:,:,:,0],loss_gt_channel_split[i][:,:,:,:,0])
-                    #     # print(loss_t2no_bce,loss_t2no_mse)
-                    #     # loss_t2no=(args.alpha*loss_t2no_mse)+(args.alpha2*loss_t2no_bce)
-                    #     # loss_t2no=loss_t2no_bce
-                    #     # t2no_ssim_loss = -ssim_loss(loss_pd_channel_split[i][:,:,:,:,0], loss_gt_channel_split[i][:,:,:,:,0])
-                    #     # loss_t2no=loss_t2no_bce
-                    #     # print(t2no_ssim_loss,loss_t2no_mse)
-                        loss+=(args.alpha*loss_t2no_mse)+(args.beta*loss_t2nd_mse)
-                
-                    # print("old",loss)
+                        loss_ce = CE(pred_logits, gt_labels)
+                        loss += loss_ce
+            
                     ######
 
                     sum_loss += loss.data * args.bs
-                    # loss.backward()
-                    # for optimizer in optimizers:
-                    #     optimizer.step()
                     
-                    # N+=pred_batch.shape[1]* args.bs
-                    N+=1
+                    N+=pred_batch.shape[1]* args.bs
+                    # N+=1
                     progress_bar.update(1)
+
                 progress_bar.close()
 
                 ave_loss = sum_loss / N 
@@ -789,8 +782,8 @@ if __name__ == "__main__":
     #File paths
     #file to save ssta results
     parser.add_argument('--gen_frm_dir', type=str, default=r'./ssta_32_32_32_32_apr6_25_latent5')
-    parser.add_argument('--train_data_paths', type=str, default=r"./dataset_02/train")
-    parser.add_argument('--valid_data_paths', type=str, default=r"./dataset_02/test")
+    parser.add_argument('--train_data_paths', type=str, default=r"./dataset_02/val")
+    parser.add_argument('--valid_data_paths', type=str, default=r"./dataset_02/val")
     parser.add_argument('--vae_ckpt_dir', type=str, default=r"./vae_file_latent5",help='None')
     parser.add_argument('--ckpt_dir', type=str, default=r'./ssta_trained/pn_inference_32_32_32_32_t2no15/SSTA_model/1', help='checkpoint dir')
 
