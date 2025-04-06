@@ -61,7 +61,7 @@ class SSTA_Net(nn.Module):
         message = None
         pred_x_tp1 = pred_x_tp1.permute(0, 2, 3, 4, 1)
         B, T, H, W, C = pred_x_tp1.shape  # C should be 200
-        pred_x_tp1 = pred_x_tp1.view(B, T, H, W, 2, C )
+        pred_x_tp1 = pred_x_tp1.view(B, T, H, W, 2, C //2 )
         pred_x_tp1 = F.sigmoid(pred_x_tp1)
         return pred_x_tp1, message, frame_predictor_hidden
 
@@ -615,7 +615,7 @@ if __name__ == "__main__":
     parser.add_argument('--message_type', type=str, default='vae', help='normal, zeros, randn, raw_data, vae')
     #trained vae model latent dimesion same as loaded model
     parser.add_argument('--vae_latent_dim', type=int, default=5)
-    parser.add_argument('--ssta_output_channels', type=int, default=100,help="timestep of t2no/t2nd")
+    parser.add_argument('--ssta_output_channels', type=int, default=0,help="timestep of t2no/t2nd")
     #File paths
     #file to save ssta results
     parser.add_argument('--gen_frm_dir', type=str, default=r'./ssta_32_32_32_32_apr6_25_latent5')
@@ -626,4 +626,5 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
     args.gen_frm_dir = os.path.join(args.gen_frm_dir)
+    args.ssta_output_channels=args.threshold_time_step*2
     training(args.n_epoch,args.act, args)
