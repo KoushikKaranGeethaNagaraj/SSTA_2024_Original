@@ -173,7 +173,7 @@ def run_steps(x_batch, models, optimizers, connections, vae, inference = True, a
                 message_others = get_relevant_msgs(ssta_key, messages, connections)
                 # print(x_t_prev_preds[view].shape, messages[ssta_key].shape, len(message_others),print(memory[view]))
                 x_t_pred, messages[ssta_key], memory_temp = model(x_t_prev_preds[view], messages[ssta_key], message_others, memory[view])
-                print("modelout",x_t_pred.shape)
+                # print("modelout",x_t_pred.shape)
                 
                 memory[view] = [(mem1.detach(), mem2.detach()) for mem1,mem2 in memory_temp]
 
@@ -323,9 +323,8 @@ def training(n_epoch, act,args):
                                                         inference=False, args=args)
                     
                     if args.loss_fn=="ce": 
-                        print("shape")
-                        print(gt_batch.shape)
-                        print(pred_batch.shape)
+                        pred_batch = pred_batch.argmax(dim=-1)  # This will reduce the last dimension
+
 
 
                     sum_loss += loss.data * args.bs
@@ -442,7 +441,8 @@ def training(n_epoch, act,args):
                 pred_batch, _ ,loss= run_steps(x_batch, models, optimizers, connections, vae,
                                                 inference=True, args=args)
                 
-            # print(pred_batch.shape)
+            if args.loss_fn=="ce": 
+                    pred_batch = pred_batch.argmax(dim=-1)  # This will reduce the last dimension
             
         
             ####
