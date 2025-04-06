@@ -205,17 +205,13 @@ def run_steps(x_batch, models, optimizers, connections, vae, inference = True, a
 
                 pred_cngd = pred_cngd.permute(0, 4, 1, 2, 3)  # New shape: [3, 100, 128, 128, 2]
 
-
-
-                # print(pred_cngd.shape, gt_cngd.shape)
-                # # print(x_t_pred[0], gt_train[0])
-
-
                 loss = CE(pred_cngd, gt_cngd)
 
-                pred_cngd = pred_cngd.argmax(dim=-1)  # This will reduce the last dimension
 
-                print("sp",pred_cngd.shape)
+
+                if args.loss_fn=="ce": x_t_pred = x_t_pred.argmax(dim=-1)  # This will reduce the last dimension
+
+                print("sp",x_t_pred.shape)
                 print("spgt",gt_train.shape)
 
                 # loss = MSE(x_t_pred, gt_train)
@@ -223,7 +219,7 @@ def run_steps(x_batch, models, optimizers, connections, vae, inference = True, a
                 loss.backward(retain_graph = True)
                 optimizers[ssta_key].step()
                 
-                pred_batch_list[view].append(pred_cngd)
+                pred_batch_list[view].append(x_t_pred)
                 message_list[view].append(messages[ssta_key])
 
                 x_t_prev_preds[view] = x_t[view][:, t+1:t+2,:,:, 0:3]
