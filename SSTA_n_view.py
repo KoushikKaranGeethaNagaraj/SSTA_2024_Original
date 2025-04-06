@@ -758,7 +758,7 @@ if __name__ == "__main__":
     #the step of start index of sequence
     parser.add_argument('--sequence_index_gap', type=int, default=10)
 
-    parser.add_argument('--n_epoch', type=int, default=300, help='200')
+    parser.add_argument('--n_epoch', type=int, default=200, help='200')
     parser.add_argument('--continue_epoch', type=int, default=0, help='200')
 
     parser.add_argument('--bs', type=int, default=3)
@@ -766,12 +766,11 @@ if __name__ == "__main__":
     parser.add_argument('--disp_eval_images', type=int, default=60)
     parser.add_argument('--save_eval_images', type=bool, default=True)
     parser.add_argument('--mask_per_step', type=int, default=1000000000)
+    
     #hyperparamter for loss(T2no and t2nd)
-   
     parser.add_argument('--alpha', type=float, default=9)
     parser.add_argument('--beta', type=float, default=1)
     parser.add_argument('--threshold_time_step', type=int, default=100,help="timestep of t2no/t2nd")
-    ##
     parser.add_argument('--device', type=str, default='cuda:0', help='cuda:0 cuda:0; cpu:0 cpu:0')
 
     # parser.add_argument('--num_step', type=int, default=15)
@@ -780,20 +779,19 @@ if __name__ == "__main__":
     # RGB dataset
     parser.add_argument('--img_width', type=int, default=128, help='img width')
     parser.add_argument('--img_channel', type=int, default=3, help='img channel')
-  
     parser.add_argument('--num_save_samples', type=int, default=10)
     parser.add_argument('--num_hidden', type=str, default='32,32,32,32', help='64,64,64,64')
     parser.add_argument('--filter_size', type=int, default=3)
     parser.add_argument('--stride', type=int, default=1)
     parser.add_argument('--message_type', type=str, default='vae', help='normal, zeros, randn, raw_data, vae')
     #trained vae model latent dimesion same as loaded model
-    parser.add_argument('--vae_latent_dim', type=int, default=4)
+    parser.add_argument('--vae_latent_dim', type=int, default=5)
     #File paths
     #file to save ssta results
-    parser.add_argument('--gen_frm_dir', type=str, default=r'./ssta_32_32_32_32_apr4_25')
-    parser.add_argument('--train_data_paths', type=str, default=r"./dataset_01/train")
-    parser.add_argument('--valid_data_paths', type=str, default=r"./dataset_01/val")
-    parser.add_argument('--vae_ckpt_dir', type=str, default=r"./vae_file",help='None')
+    parser.add_argument('--gen_frm_dir', type=str, default=r'./ssta_32_32_32_32_apr6_25_latent5')
+    parser.add_argument('--train_data_paths', type=str, default=r"./dataset_02/train")
+    parser.add_argument('--valid_data_paths', type=str, default=r"./dataset_02/test")
+    parser.add_argument('--vae_ckpt_dir', type=str, default=r"./vae_file_latent5",help='None')
     parser.add_argument('--ckpt_dir', type=str, default=r'./ssta_trained/pn_inference_32_32_32_32_t2no15/SSTA_model/1', help='checkpoint dir')
 
     args = parser.parse_args()
