@@ -327,7 +327,7 @@ def training(n_epoch, act,args):
                                                         inference=False, args=args)
                     
                     
-                    print("pred",pred_batch.shape,"gt",gt_batch)
+                    print("pred",pred_batch.shape,"gt",gt_batch.shape)
                     # if args.loss_fn=="ce": 
                     #     pred_batch = pred_batch.argmax(dim=-1)  # This will reduce the last dimension
 
