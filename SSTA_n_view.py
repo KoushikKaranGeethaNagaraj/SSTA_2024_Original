@@ -215,8 +215,8 @@ def run_steps(x_batch, models, optimizers, connections, vae, inference = True, a
 
                 pred_cngd = pred_cngd.argmax(dim=-1)  # This will reduce the last dimension
 
-                print(pred_cngd.shape)
-                print(gt_train.shape)
+                print("sp",pred_cngd.shape)
+                print("spgt",gt_train.shape)
 
                 # loss = MSE(x_t_pred, gt_train)
                 # print(loss, ssta_key)
@@ -327,11 +327,11 @@ def training(n_epoch, act,args):
                                                         inference=False, args=args)
                     
                     
-                    # print(pred_batch.shape,gt_batch)
+                    print("pred",pred_batch.shape,"gt",gt_batch)
                     # if args.loss_fn=="ce": 
                     #     pred_batch = pred_batch.argmax(dim=-1)  # This will reduce the last dimension
 
-                    print(pred_batch.shape)
+                    # print(pred_batch.shape)
 
 
                     sum_loss += loss.data * args.bs
@@ -339,7 +339,6 @@ def training(n_epoch, act,args):
                     # N+=pred_batch.shape[1]* args.bs
                     N+=1
                     progress_bar.update(1)
-                    break
 
                 progress_bar.close()
 
