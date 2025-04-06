@@ -213,6 +213,8 @@ def run_steps(x_batch, models, optimizers, connections, vae, inference = True, a
 
                 loss = CE(pred_cngd, gt_cngd)
 
+                pred_cngd = pred_cngd.argmax(dim=-1)  # This will reduce the last dimension
+
                 # loss = MSE(x_t_pred, gt_train)
                 # print(loss, ssta_key)
                 loss.backward(retain_graph = True)
@@ -229,7 +231,6 @@ def run_steps(x_batch, models, optimizers, connections, vae, inference = True, a
         message_list_before = [torch.cat(first,1) for first in message_list]
         message_batch = torch.cat(message_list_before, -1)
 
-    print()
     return pred_batch, message_batch , loss
 
 
@@ -324,8 +325,8 @@ def training(n_epoch, act,args):
                     
                     
                     # print(pred_batch.shape,gt_batch)
-                    if args.loss_fn=="ce": 
-                        pred_batch = pred_batch.argmax(dim=-1)  # This will reduce the last dimension
+                    # if args.loss_fn=="ce": 
+                    #     pred_batch = pred_batch.argmax(dim=-1)  # This will reduce the last dimension
 
                     print(pred_batch.shape)
 
