@@ -215,6 +215,9 @@ def run_steps(x_batch, models, optimizers, connections, vae, inference = True, a
 
                 pred_cngd = pred_cngd.argmax(dim=-1)  # This will reduce the last dimension
 
+                print(pred_cngd.shape)
+                print(gt_train.shape)
+
                 # loss = MSE(x_t_pred, gt_train)
                 # print(loss, ssta_key)
                 loss.backward(retain_graph = True)
