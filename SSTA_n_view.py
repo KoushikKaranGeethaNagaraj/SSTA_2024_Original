@@ -61,7 +61,8 @@ class SSTA_Net(nn.Module):
         message = None
         pred_x_tp1 = pred_x_tp1.permute(0, 2, 3, 4, 1)
         B, T, H, W, C = pred_x_tp1.shape  # C should be 200
-        pred_x_tp1 = pred_x_tp1.view(B, T, H, W, 2, C //2 )
+        if args.loss_fn=="ce":
+            pred_x_tp1 = pred_x_tp1.view(B, T, H, W, 2, C //2 )
         pred_x_tp1 = F.sigmoid(pred_x_tp1)
         return pred_x_tp1, message, frame_predictor_hidden
 
@@ -206,17 +207,13 @@ def run_steps(x_batch, models, optimizers, connections, vae, inference = True, a
 
 
 
-                print(pred_cngd.shape, gt_cngd.shape)
-                # print(x_t_pred[0], gt_train[0])
+                # print(pred_cngd.shape, gt_cngd.shape)
+                # # print(x_t_pred[0], gt_train[0])
 
 
                 loss = CE(pred_cngd, gt_cngd)
 
                 # loss = MSE(x_t_pred, gt_train)
-
-                
-                print(loss)
-                
                 # print(loss, ssta_key)
                 loss.backward(retain_graph = True)
                 optimizers[ssta_key].step()
@@ -325,6 +322,10 @@ def training(n_epoch, act,args):
                     pred_batch, message_batch ,loss = run_steps(x_batch, models, optimizers, connections, vae,
                                                         inference=False, args=args)
                     
+                    if args.loss_fn=="ce": 
+                        print("shape")
+                        print(gt_batch.shape)
+                        print(pred_batch.shape)
 
 
                     sum_loss += loss.data * args.bs
@@ -631,5 +632,8 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
     args.gen_frm_dir = os.path.join(args.gen_frm_dir)
-    args.ssta_output_channels=args.threshold_time_step*2
+    if args.loss_fn=="ce": 
+        args.ssta_output_channels=args.threshold_time_step*2
+    else:args.ssta_output_channels=2
+
     training(args.n_epoch,args.act, args)
