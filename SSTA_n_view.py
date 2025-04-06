@@ -122,6 +122,8 @@ def run_steps(x_batch, models, optimizers, connections, vae, inference = True, a
             for view, (ssta_key,model) in enumerate(models.items()):
                 
                 x_t_pred, messages[ssta_key], memory[view] = model(x_t_prev_preds[view], messages[ssta_key], message_others, memory[view])
+
+                print("modelout",x_t_pred.shape)
                 
                 if args.message_type in ['vae']:
                     if t < args.num_past or np.random.uniform(0, 1) > (1-1/args.mask_per_step):  # t % args.mask_per_step == 0:
