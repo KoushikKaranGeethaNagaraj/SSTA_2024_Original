@@ -192,8 +192,9 @@ def run_steps(x_batch, models, optimizers, connections, vae, inference = True, a
                 gt_train =  x_t[view][:, t:t + 1,:,:, 3:]
                 # print(x_t_pred.shape, x_t_prev_preds[view].shape, gt_train.shape)
 
-                ce_gt_train = gt_train[..., args.threshold_time_step]
-                ce_pd_train = x_t_pred[..., args.threshold_time_step]
+                ce_gt_train = gt_train[-1, args.threshold_time_step]
+                ce_pd_train = x_t_pred[-1, args.threshold_time_step]
+
 
 
                 # print(x_t_pred.shape, gt_train.shape)
