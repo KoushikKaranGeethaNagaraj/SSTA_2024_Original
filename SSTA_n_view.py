@@ -326,13 +326,14 @@ def training(n_epoch, act,args):
                         pred_batch = pred_batch.argmax(dim=-1)  # This will reduce the last dimension
 
                     print(pred_batch.shape)
-                    break
+
 
                     sum_loss += loss.data * args.bs
                     
                     # N+=pred_batch.shape[1]* args.bs
                     N+=1
                     progress_bar.update(1)
+                    break
 
                 progress_bar.close()
 
