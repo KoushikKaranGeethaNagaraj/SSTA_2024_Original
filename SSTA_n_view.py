@@ -200,6 +200,7 @@ def run_steps(x_batch, models, optimizers, connections, vae, inference = True, a
                 # ce_pd_train = x_t_pred[-1, args.threshold_time_step]
                 pred_cngd = x_t_pred.squeeze(1)   # New shape: [3, 128, 128, 2, 100]
                 gt_cngd = gt_train.squeeze(1) 
+                gt_cngd = gt_cngd.long()
 
                 pred_cngd = pred_cngd.permute(0, 4, 1, 2, 3)  # New shape: [3, 100, 128, 128, 2]
 
