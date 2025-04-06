@@ -198,14 +198,18 @@ def run_steps(x_batch, models, optimizers, connections, vae, inference = True, a
 
                 # ce_gt_train = gt_train[-1, args.threshold_time_step]
                 # ce_pd_train = x_t_pred[-1, args.threshold_time_step]
+                pred_cngd = x_t_pred.squeeze(1)   # New shape: [3, 128, 128, 2, 100]
+                gt_cngd = gt_train.squeeze(1) 
+
+                pred_cngd = pred_cngd.permute(0, 4, 1, 2, 3)  # New shape: [3, 100, 128, 128, 2]
 
 
 
-                print(x_t_pred.shape, gt_train.shape)
+                print(pred_cngd.shape, gt_cngd.shape)
                 # print(x_t_pred[0], gt_train[0])
 
 
-                loss = CE(x_t_pred, gt_train)
+                loss = CE(pred_cngd, gt_cngd)
 
                 # loss = MSE(x_t_pred, gt_train)
 
@@ -600,6 +604,7 @@ if __name__ == "__main__":
     parser.add_argument('--beta', type=float, default=1)
     parser.add_argument('--threshold_time_step', type=int, default=100,help="timestep of t2no/t2nd")
     parser.add_argument('--device', type=str, default='cuda:0', help='cuda:0 cuda:0; cpu:0 cpu:0')
+    parser.add_argument('--loss_fn', type=str, default='ce', help='ce/ mse /bce')
 
     # parser.add_argument('--num_step', type=int, default=15)
     parser.add_argument('--num_past', type=int, default=4)
