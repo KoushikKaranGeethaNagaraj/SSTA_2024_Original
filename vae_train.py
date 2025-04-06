@@ -489,13 +489,13 @@ if __name__ == "__main__":
 
     parser.add_argument('--baseline', type=str, default='SSTA_view_view',
                         help="SSTA_view_view,SSTA_views_1")# This parameter is used to prepare the dataset,alternate or making 4 view dataset to 1 view dataset(SSTA_views_1)
-    parser.add_argument('--gen_frm_dir', type=str, default= "./vae_latent64_apr5_25")
+    parser.add_argument('--gen_frm_dir', type=str, default= "./vae_latent5_apr5_25")
     parser.add_argument('--num_save_samples', type=int, default=10)
     parser.add_argument('--layer_norm', type=int, default=1)
     parser.add_argument('--num_hidden', type=str, default='32,32,32,32', help='64,64,64,64')
     parser.add_argument('--filter_size', type=int, default=5)
     parser.add_argument('--stride', type=int, default=1)
-    parser.add_argument('--vae_latent_dim', type=int, default= 64,help="default 4")
+    parser.add_argument('--vae_latent_dim', type=int, default= 5,help="default 4")
     parser.add_argument('--version', type=str, default='predrnn', help='version')
     parser.add_argument('--message_type', type=str, default='zeros', help='normal, zeros, randn, raw_data, vae')
     parser.add_argument('--cl_mode', type=str, default='sliding_window', help='full_history, sliding_window')

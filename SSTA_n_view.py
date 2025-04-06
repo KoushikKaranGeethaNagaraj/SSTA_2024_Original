@@ -28,10 +28,6 @@ import torch
 import pytorch_ssim
 
 
-
-
-
-
 seed = 0
 random.seed(seed)
 
