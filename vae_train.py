@@ -360,16 +360,18 @@ def training(N, Nte, bs, n_epoch, act, args):
                             img_pd = np.uint8(img_pd * 255)
                             img_pd = cv2.cvtColor(img_pd, cv2.COLOR_BGR2RGB)
                             cv2.imwrite(file_name, img_pd)
-                        for i in range(y_test.shape[1]):
-                            name = 'msg_{0:02d}_{1:02d}.png'.format(i + 1, view_idx)
-                            file_name = os.path.join(path, name)
-                            # print('message.shape: ', message.shape) #  (10, 10, 128, 128, 2) or (10, 10, 128, 128, 6)
-                            img_pd = message[0, i, :, :,
-                                     (view_idx * 1) * args.vae_latent_dim:((view_idx + 1) * args.vae_latent_dim)]
-                            # in range (0, 1)
-                            # print('img_pd.shape: ', img_pd.shape, img_pd.max(), img_pd.min()) # img_pd.shape:  (128, 128, 1)
-                            img_pd = np.uint8(img_pd * 255)
-                            cv2.imwrite(file_name, img_pd)
+                        
+                        if args.vae_latent_dim<=4:
+                            for i in range(y_test.shape[1]):
+                                name = 'msg_{0:02d}_{1:02d}.png'.format(i + 1, view_idx)
+                                file_name = os.path.join(path, name)
+                                # print('message.shape: ', message.shape) #  (10, 10, 128, 128, 2) or (10, 10, 128, 128, 6)
+                                img_pd = message[0, i, :, :,
+                                        (view_idx * 1) * args.vae_latent_dim:((view_idx + 1) * args.vae_latent_dim)]
+                                # in range (0, 1)
+                                # print('img_pd.shape: ', img_pd.shape, img_pd.max(), img_pd.min()) # img_pd.shape:  (128, 128, 1)
+                                img_pd = np.uint8(img_pd * 255)
+                                cv2.imwrite(file_name, img_pd)
 
                 avg_mse = avg_mse / (batch_id * args.bs)
                 print('mse per seq: ' + str(avg_mse))
