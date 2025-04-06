@@ -203,15 +203,14 @@ def run_steps(x_batch, models, optimizers, connections, vae, inference = True, a
 
                 print(x_t_pred.shape, gt_train.shape)
                 # print(x_t_pred[0], gt_train[0])
-                import sys
-                sys.exit(0)
 
-                # loss = CE(ce_pd_train, ce_gt_train)
+
+                loss = CE(x_t_pred, gt_train)
 
                 # loss = MSE(x_t_pred, gt_train)
 
                 
-                # print(loss)
+                print(loss)
                 
                 # print(loss, ssta_key)
                 loss.backward(retain_graph = True)
