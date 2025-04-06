@@ -326,6 +326,7 @@ def training(n_epoch, act,args):
                         pred_batch = pred_batch.argmax(dim=-1)  # This will reduce the last dimension
 
                     print(pred_batch.shape)
+                    break
 
                     sum_loss += loss.data * args.bs
                     
@@ -376,6 +377,7 @@ def training(n_epoch, act,args):
                         file_name = os.path.join(path, name)
                         t2no_img_pd = pred_batch[0, i, :, :,
                                 (view_idx * 2):((view_idx *2) +1)]
+                        print(t2no_img_pd.shape)
                         t2no_img_pd = ((t2no_img_pd * 255))                        
                         cv2.imwrite(file_name, np.uint8(t2no_img_pd))
 
