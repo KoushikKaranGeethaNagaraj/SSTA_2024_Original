@@ -141,7 +141,7 @@ def run_steps(x_batch, model_0, model_1, with_comm=True, args=None):
     return pred_batch, message_batch, mu_batch, log_var_batch
 
 
-def training(N, Nte, bs, n_epoch, act, data_mode, args):
+def training(N, Nte, bs, n_epoch, act, args):
     train_input_handle, test_input_handle = data_provider(
         args.data_name, args.train_data_paths, args.valid_data_paths, args.bs, args.img_width,
         seq_length=args.num_step + args.num_past, is_training=True, num_views=args.num_views, img_channel=args.img_channel,
@@ -171,7 +171,6 @@ def training(N, Nte, bs, n_epoch, act, data_mode, args):
     MSE = nn.MSELoss()
     tr_loss = []
     te_loss = []
-
     tr_recon_loss = []
     tr_kl_loss = []
     te_recon_loss = []
@@ -194,21 +193,17 @@ def training(N, Nte, bs, n_epoch, act, data_mode, args):
         train_input_handle.begin(do_shuffle=True)
         train_input_handle.print_stat()
 
-
         while (train_input_handle.no_batch_left() == False and args.mode == 'train'):
             ims = train_input_handle.get_batch()
-            print(ims.shape)
-            print("input",ims.shape)
             
             train_input_handle.next()
             x_batch = ims[:, :]
-            # gt_batch = ims[:, 1:]
+
             gt_batch = ims[:, args.num_past:]
 
-            print(x_batch.shape,gt_batch.shape)
             x_batch = torch.from_numpy(x_batch.astype(np.float32)).to(args.device)  # .reshape(x.shape[0], 1))
             gt_batch = torch.from_numpy(gt_batch.astype(np.float32)).to(args.device)  # .reshape(gt.shape[0], 1))
-            # print(x_batch.shape, gt_batch.shape) # torch.Size([10, 19, 128, 128, 6]) torch.Size([10, 19, 128, 128, 6])
+
             optimizer.zero_grad()
             pred_batch, message_batch, mu_batch, log_var_batch = run_steps(x_batch, model_0, None,
                                                   with_comm=args.with_comm, args=args)
@@ -227,20 +222,15 @@ def training(N, Nte, bs, n_epoch, act, data_mode, args):
             sum_loss += loss.data * bs
             sum_recon_loss += recons_loss.data * bs
             sum_kl_loss += kld_loss.data * bs
-        print("loss",loss)
-
         ave_loss = sum_loss / (N - args.num_step)
         ave_recon_loss = sum_recon_loss / (N - args.num_step)
         ave_kl_loss = sum_kl_loss / (N - args.num_step)
-        
-#         tr_loss.append(ave_loss.cpu())
-#         tr_recon_loss.append(ave_recon_loss.cpu())
-#         tr_kl_loss.append(ave_kl_loss.cpu())
+    
         tr_loss.append(ave_loss)
         tr_recon_loss.append(ave_recon_loss)
         tr_kl_loss.append(ave_kl_loss)
         train_stats = {'ave_loss': ave_loss, 'ave_recon_loss': ave_recon_loss, 'ave_kl_loss': ave_kl_loss}
-        # model_0.eval()
+        model_0.eval()
         print('Evaluating ...')
         with torch.no_grad():
             te_sum_loss = []
@@ -279,27 +269,6 @@ def training(N, Nte, bs, n_epoch, act, data_mode, args):
         if epoch % 100 == 1:#100
             print("Ep/MaxEp     tr_loss     te_loss")
 
-        if epoch % 2== 0:#10
-            te_loss = [tensor.to("cpu") for tensor in te_loss]
-            tr_loss = [tensor.to("cpu") for tensor in tr_loss]
-            
-            print("{:4}/{}  {:10.5}   {:10.5}".format(epoch, n_epoch, ave_loss, float(loss.data)))
-            plt.plot(tr_loss, label="training")
-            plt.plot(te_loss, label="test")
-            plt.yscale('log')
-            plt.legend()
-            plt.grid(True)
-            plt.xlabel("epoch")
-            plt.ylabel("loss (MSE)")
-            plt.pause(0.1)
-            graph_path=os.path.join(root_res_path,"graph")
-            graph_path=os.path.join(graph_path,str(epoch))
-            os.makedirs(graph_path, exist_ok=True)
-            plt.savefig(os.path.join(graph_path, "loss_history.png"))
-            plt.clf()
-            te_loss = [tensor.to("cuda:0") for tensor in te_loss]
-            tr_loss = [tensor.to("cuda:0") for tensor in tr_loss]
-            
 
         if epoch % 2==0: # 20
             batch_id = 0
@@ -487,10 +456,10 @@ if __name__ == "__main__":
             raise argparse.ArgumentTypeError('Boolean value expected.')
 
     parser = argparse.ArgumentParser("cifar")
-    parser.add_argument('--data_mode', type=str, default="(y_{t-1}, y_t)->y_{t+1}", help='(y_{t-1}, y_t)->y_{t+1}')
+
     parser.add_argument('--act', type=str, default="relu", help='relu')
     parser.add_argument('--mode', type=str, default="train", help='train / eval')
-    parser.add_argument('--eval_mode', type=str, default='multi_step_eval', help='multi_step_eval / single_step_eval')
+    parser.add_argument('--eval_mode', type=str, default='single_step_eval', help='multi_step_eval / single_step_eval')
     parser.add_argument('--eval_num_step', type=int, default=10)
     parser.add_argument('--log_per_epoch', type=int, default=10)
     parser.add_argument('--num_step', type=int, default=10)
@@ -506,10 +475,9 @@ if __name__ == "__main__":
     parser.add_argument('--device', type=str, default='cuda:0', help='cuda:0 cuda:0; cpu:0 cpu:0')
     parser.add_argument('--with_comm', type=str2bool, default=False, help='whether to use communication')
     #change this to train
-    parser.add_argument('--train_data_paths', type=str, default=r"dataset_01\train")
-        # carla_town02_20211201
-    parser.add_argument('--valid_data_paths', type=str, default=r"dataset_01\test")
-    parser.add_argument('--model_type', type=str, default="vae")
+    parser.add_argument('--train_data_paths', type=str, default=r"dataset_02\train")
+    parser.add_argument('--valid_data_paths', type=str, default=r"dataset_02\test")
+    parser.add_argument('--model_type', type=str, default="vae",help="ssta/vae")
     parser.add_argument('--sequence_index_gap', type=int, default=10)
 
     # RGB dataset
@@ -519,13 +487,13 @@ if __name__ == "__main__":
 
     parser.add_argument('--baseline', type=str, default='SSTA_view_view',
                         help="SSTA_view_view,SSTA_views_1")# This parameter is used to prepare the dataset,alternate or making 4 view dataset to 1 view dataset(SSTA_views_1)
-    parser.add_argument('--gen_frm_dir', type=str, default= "./vae_training_files")
+    parser.add_argument('--gen_frm_dir', type=str, default= "./vae_latent64_apr5_25")
     parser.add_argument('--num_save_samples', type=int, default=10)
     parser.add_argument('--layer_norm', type=int, default=1)
-    parser.add_argument('--num_hidden', type=str, default='32,16,8', help='64,64,64,64')
+    parser.add_argument('--num_hidden', type=str, default='32,32,32,32', help='64,64,64,64')
     parser.add_argument('--filter_size', type=int, default=5)
     parser.add_argument('--stride', type=int, default=1)
-    parser.add_argument('--vae_latent_dim', type=int, default=4)
+    parser.add_argument('--vae_latent_dim', type=int, default= 64,help="default 4")
     parser.add_argument('--version', type=str, default='predrnn', help='version')
     parser.add_argument('--message_type', type=str, default='zeros', help='normal, zeros, randn, raw_data, vae')
     parser.add_argument('--cl_mode', type=str, default='sliding_window', help='full_history, sliding_window')
@@ -534,10 +502,9 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    h_units = [10, 10]
+    h_units = [10,10,10,10]
     timestr = time.strftime("%Y%m%d-%H%M%S")
     args.gen_frm_dir = os.path.join(args.gen_frm_dir)
-    #When testing or mode=eval
-#     args.valid_data_paths = r"DATASET\test".format(args.data_name)
 
-    training(args.N, args.Nte, args.bs, args.n_epoch, args.act, args.data_mode, args)
+
+    training(args.N, args.Nte, args.bs, args.n_epoch, args.act, args)

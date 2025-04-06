@@ -256,23 +256,6 @@ class DatasetUtility:
         t2no_files=[[] for _ in range(self.total_views)]
         t2nd_files=[[] for _ in range(self.total_views)]
         
-
-        # for _,camera_view in enumerate(os.listdir(dataset_path)):
-        #     full_path = os.path.join(dataset_path, camera_view)
-  
-        #     if camera_view[0]=="c":
-        #             dataset_files[int(camera_view[-1])].extend([os.path.join(full_path, file) for file in sorted(os.listdir(full_path),key=self.numerical_sort)])
-        #             continue
-          
-        #     if self.t2n and camera_view[0]!="c":
-        #         for _,t2n_camera in enumerate(os.listdir(full_path)):
-        #             t2n_full_path = os.path.join(full_path, t2n_camera)
-        #             if t2n_camera[0]=="c":
-        #                 t2nd_files[int(t2n_camera[-1])].extend([os.path.join(t2n_full_path, file) for file in sorted(os.listdir(t2n_full_path),key=self.numerical_sort)    if 't2nd' in file])
-
-        #                 t2no_files[int(t2n_camera[-1])].extend([os.path.join(t2n_full_path, file) for file in sorted(os.listdir(t2n_full_path),key=self.numerical_sort)    if 't2no' in file])
-           
-        
         
         for _,camera_view in enumerate(os.listdir(dataset_path)):
             full_path = os.path.join(dataset_path, camera_view)
