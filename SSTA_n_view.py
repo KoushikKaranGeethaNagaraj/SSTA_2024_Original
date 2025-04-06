@@ -153,6 +153,8 @@ def run_steps(x_batch, models, optimizers, connections, vae, inference = True, a
     else:
         torch.autograd.set_detect_anomaly(True)
         MSE = nn.MSELoss()
+        CE = nn.CrossEntropyLoss()
+        loss=0.0
         x_t_prev_preds = []
         for view in range(args.num_views):
             x_t_prev_preds.append(x_t[view][:, 0:0 + 1,:,:, 0:3])
@@ -190,9 +192,12 @@ def run_steps(x_batch, models, optimizers, connections, vae, inference = True, a
                 gt_train =  x_t[view][:, t:t + 1,:,:, 3:]
                 # print(x_t_pred.shape, x_t_prev_preds[view].shape, gt_train.shape)
 
-
+                print(x_t_pred.shape, gt_train.shape)
 
                 loss = MSE(x_t_pred, gt_train)
+
+                
+                print(loss)
                 
                 # print(loss, ssta_key)
                 loss.backward(retain_graph = True)
@@ -203,14 +208,6 @@ def run_steps(x_batch, models, optimizers, connections, vae, inference = True, a
 
                 x_t_prev_preds[view] = x_t[view][:, t+1:t+2,:,:, 0:3]
 
-                # if view == 0:
-                #     example = x_t_pred[0].squeeze().detach().cpu().numpy()[:,:,0]
-                #     example = x_t_prev_preds[view].squeeze().detach().cpu().numpy()
-                #     # print(example.shape)
-                #     cv2.imshow("ex",example)
-                #     cv2.waitKey(10)
-
-
         pred_batch_before = [torch.cat(first,1) for first in pred_batch_list]
         pred_batch = torch.cat(pred_batch_before, -1)
 
@@ -218,7 +215,7 @@ def run_steps(x_batch, models, optimizers, connections, vae, inference = True, a
         message_batch = torch.cat(message_list_before, -1)
 
 
-    return pred_batch, message_batch
+    return pred_batch, message_batch , loss
 
 
 
@@ -267,9 +264,7 @@ def training(n_epoch, act,args):
 
     # optimizer = optim.Adam(parameters,lr = 0.0001)
 
-    MSE = nn.MSELoss()
     ssim_loss = pytorch_ssim.SSIM(window_size = 11)
-
 
     root_res_path = os.path.join(args.gen_frm_dir)
     os.makedirs(root_res_path, exist_ok=True)
@@ -291,6 +286,7 @@ def training(n_epoch, act,args):
                 
                 sum_loss = 0
                 N,iter=0,0
+                loss=0.0
                 print('Training ... {}'.format(epoch))
                 train_input_handle.begin(do_shuffle=True)
                 progress_bar = tqdm(total=train_input_handle.total()-1, desc='Epoch Completion')
@@ -308,53 +304,15 @@ def training(n_epoch, act,args):
                     gt_channel_split= torch.split(gt_batch, gt_batch.shape[-1] // args.num_views, dim=-1)
                     gt_batch = torch.cat([t[..., -2:] for t in gt_channel_split], dim=-1)
 
-                    loss=0.0
-                    CE = nn.CrossEntropyLoss()
-
-                    pred_batch, message_batch = run_steps(x_batch, models, optimizers, connections, vae,
+                    pred_batch, message_batch ,loss = run_steps(x_batch, models, optimizers, connections, vae,
                                                         inference=False, args=args)
                     
-                    #MSE LOSS-together
-                    # loss = MSE(pred_batch, gt_batch)
-                    ##
 
-                    # #####Loss seperated as T2NO and T2nD for each view and ##threshold
-                    loss_gt_channel_split= torch.split(gt_batch, gt_batch.shape[-1] // args.num_views, dim=-1)
-                    loss_pd_channel_split=torch.split(pred_batch, gt_batch.shape[-1] // args.num_views, dim=-1)
-
-                    # for i in range(len(loss_gt_channel_split)):
-       
-                    #     loss_t2no_mse=MSE(loss_pd_channel_split[i][:,:,:,:,0],loss_gt_channel_split[i][:,:,:,:,0])
-                    #     loss_t2nd_mse=MSE(loss_pd_channel_split[i][:,:,:,:,1],loss_gt_channel_split[i][:,:,:,:,1])
-                    # #     # loss_t2no_bce=BCE(loss_pd_channel_split[i][:,:,:,:,0],loss_gt_channel_split[i][:,:,:,:,0])
-                    # #     # print(loss_t2no_bce,loss_t2no_mse)
-                    # #     # loss_t2no=(args.alpha*loss_t2no_mse)+(args.alpha2*loss_t2no_bce)
-                    # #     # loss_t2no=loss_t2no_bce
-                    # #     # t2no_ssim_loss = -ssim_loss(loss_pd_channel_split[i][:,:,:,:,0], loss_gt_channel_split[i][:,:,:,:,0])
-                    # #     # loss_t2no=loss_t2no_bce
-                    # #     # print(t2no_ssim_loss,loss_t2no_mse)
-                    #     loss+=(args.alpha*loss_t2no_mse)+(args.beta*loss_t2nd_mse)
-
-                    for i in range(len(loss_gt_channel_split)):
-                        gt_labels = torch.zeros_like(loss_gt_channel_split[i][:,:,:,:,0]).long()
-                        gt_labels[loss_gt_channel_split[i][:,:,:,:,0] > 0.5] = 1  # T2NO
-                        gt_labels[loss_gt_channel_split[i][:,:,:,:,1] > 0.5] = 2  # T2ND
-
-                        pred_logits = torch.stack([
-                            1 - (loss_pd_channel_split[i][:,:,:,:,0] + loss_pd_channel_split[i][:,:,:,:,1]),
-                            loss_pd_channel_split[i][:,:,:,:,0],
-                            loss_pd_channel_split[i][:,:,:,:,1],
-                        ], dim=1)
-
-                        loss_ce = CE(pred_logits, gt_labels)
-                        loss += loss_ce
-            
-                    ######
 
                     sum_loss += loss.data * args.bs
                     
-                    N+=pred_batch.shape[1]* args.bs
-                    # N+=1
+                    # N+=pred_batch.shape[1]* args.bs
+                    N+=1
                     progress_bar.update(1)
 
                 progress_bar.close()
@@ -436,141 +394,6 @@ def training(n_epoch, act,args):
                         train_model_save_path2=os.path.join(train_model_save_path,ssta_key + '.pt')
                         torch.save(models[ssta_key], train_model_save_path2)
 
-                    
-                    # print("evaluating... ")
-
-                    # for name, _ in models.items():
-                    #     models[name].eval()
-
-                    # batch_id = 0
-                    # eval_res_path = os.path.join(root_res_path, "eval_images")
-                    # eval_res_path=os.path.join(eval_res_path, str(epoch))
-                    # os.makedirs(eval_res_path, exist_ok=True)
-
-                    # test_input_handle.begin(do_shuffle=False)
-                    # N,iter,sum_loss,Total_eval_images,ave_loss=0,0,0,0,0
-                    # # print( test_input_handle.get_batch())
-                    # while (test_input_handle.no_batch_left() == False ):
-
-                    #     batch_id = batch_id + 1
-                    #     ims = test_input_handle.get_batch()
-                    #     test_input_handle.next()
-                    #     x_batch = ims[:, :]
-                    #     gt_batch = ims[:, 1:]
-                    #     x_batch = torch.from_numpy(x_batch.astype(np.float32)).to(args.device)  # .reshape(x.shape[0], 1))
-                    #     gt_batch = torch.from_numpy(gt_batch.astype(np.float32)).to(args.device)  # .reshape(gt.shape[0], 1))
-
-                    #     gt_channel_split= torch.split(gt_batch, gt_batch.shape[-1] // args.num_views, dim=-1)
-                    #     gt_batch = torch.cat([t[..., -2:] for t in gt_channel_split], dim=-1)
-
-                    #     with torch.no_grad():
-                    #         print(x_batch.shape)
-                    #         pred_batch, _ = run_steps(x_batch, models, optimizers, connections, vae,
-                    #                                         inference=True, args=args)
-                            
-                    #     # print(pred_batch.shape)
-                        
-                    #     #MSE LOSS-together
-                    #     # loss = MSE(pred_batch, gt_batch)
-                    #     #####
-                    #     loss_gt_channel_split= torch.split(gt_batch, gt_batch.shape[-1] // args.num_views, dim=-1)
-                    #     loss_pd_channel_split=torch.split(pred_batch, gt_batch.shape[-1] // args.num_views, dim=-1)
-                    #     loss=0.0
-
-                    #     # loss_exp = 
-                    #     for i in range(len(loss_gt_channel_split)):
-                    #         loss_t2no_mse=MSE(loss_pd_channel_split[i][:,:,:,:,0],loss_gt_channel_split[i][:,:,:,:,0])
-                    #         # loss_t2no2=MSE(loss_pd_channel_split[i][:,:,:,:,0]*loss_gt_channel_split[i][:,:,:,:,0],loss_gt_channel_split[i][:,:,:,:,0]*loss_gt_channel_split[i][:,:,:,:,0])
-
-                    #         loss_t2nd=MSE(loss_pd_channel_split[i][:,:,:,:,1],loss_gt_channel_split[i][:,:,:,:,1])
-                    #         # loss_exp = (loss_pd_channel_split[i][:,:,:,:,0]-loss_gt_channel_split[i][:,:,:,:,0])
-
-                    #         # print(loss_t2no,loss_t2no2)
-                    #         # loss_t2no_bce=BCE(loss_pd_channel_split[i][:,:,:,:,0],loss_gt_channel_split[i][:,:,:,:,0])
-                    #         # print(loss_t2no_bce,loss_t2no_mse)
-                    #         # loss_t2no=(args.alpha1*loss_t2no_mse)+(args.alpha2*loss_t2no_bce)
-                    #         # loss_t2no=loss_t2no_bcee
-                    #         t2no_ssim_loss = -ssim_loss(loss_pd_channel_split[i][:,:,:,:,0], loss_gt_channel_split[i][:,:,:,:,0])
-                    #         loss_t2no=t2no_ssim_loss
-                            
-                    #         loss+=(args.alpha*loss_t2no)+(args.beta*loss_t2nd)
-                            
-
-                
-                    #     # print("old",loss)
-                    #     ######
-                     
-                    #     sum_loss += loss.data * args.vis_bs
-                    #     N+=1
-                        
-                    #     pred_batch = pred_batch.detach().cpu().numpy()
-                    #     gt_batch = ims[:, 1:]
-                    #     gt_batch = torch.from_numpy(gt_batch.astype(np.float32)).to(args.device)  # .reshape(gt.shape[0], 1))
-
-                    #     gt_channel_split= torch.split(gt_batch, gt_batch.shape[-1] // args.num_views, dim=-1)
-                    #     gt_batch = torch.cat([t[..., -2:] for t in gt_channel_split], dim=-1)
-                    #     input_batch=torch.cat([t[..., :3] for t in gt_channel_split], dim=-1)
-
-                    #     gt_batch = gt_batch.detach().cpu().numpy()
-                    #     input_batch = input_batch.detach().cpu().numpy()
-                    
-                    #     # print(input_batch.shape,pred_batch.shape,gt_batch.shape)
-
-                    #     if args.save_eval_images and Total_eval_images<=args.disp_eval_images:
-                    #         for view_idx in range(args.num_views):
-
-                    #             path=os.path.join(eval_res_path, str(view_idx))
-                    #             os.makedirs(path, exist_ok=True)
-
-                    #             for i in range(pred_batch.shape[1]):
-                    #                 name = 'input_{0:02d}_{1:02d}.png'.format(iter , view_idx)
-                    #                 file_name = os.path.join(path, name)
-                    #                 input_gt = np.uint8(input_batch[0, i, :, :, (view_idx * args.img_channel):(
-                    #                             (view_idx + 1) * args.img_channel)] * 255)
-                    #                 input_gt = cv2.cvtColor(input_gt, cv2.COLOR_BGR2RGB)
-                    #                 cv2.imwrite(file_name, input_gt)
-
-
-                    #                 name = 'pdt2n0_{0:02d}_{1:02d}.png'.format(iter, view_idx)
-                    #                 file_name = os.path.join(path, name)
-                    #                 t2no_img_pd = pred_batch[0, i, :, :,
-                    #                         (view_idx * 2):((view_idx *2) +1)]
-                    #                 t2no_img_pd = ((t2no_img_pd * 255))                        
-                    #                 cv2.imwrite(file_name, np.uint8(t2no_img_pd))
-
-                    #                 name = 'gtt2n0_{0:02d}_{1:02d}.png'.format(iter, view_idx)
-                    #                 file_name = os.path.join(path, name)
-                    #                 t2no_img_gt = gt_batch[0, i, :, :,
-                    #                         (view_idx * 2):((view_idx *2) +1)]
-                    #                 t2no_img_gt = ((t2no_img_gt * 255))                        
-                    #                 cv2.imwrite(file_name, np.uint8(t2no_img_gt))
-
-
-                    #                 name = 'pdt2nd_{0:02d}_{1:02d}.png'.format(iter, view_idx)
-                    #                 file_name = os.path.join(path, name)
-                    #                 t2nd_img_pd = pred_batch[0, i, :, :,
-                    #                         (view_idx * 2)+1:((view_idx *2)+2 )]
-                    #                 t2nd_img_pd = ((t2nd_img_pd * 255))                        
-                    #                 cv2.imwrite(file_name, np.uint8(t2nd_img_pd))
-
-
-                    #                 name = 'gtt2nd_{0:02d}_{1:02d}.png'.format(iter, view_idx)
-                    #                 file_name = os.path.join(path, name)
-                    #                 t2nd_img_gt = gt_batch[0, i, :, :,
-                    #                         (view_idx * 2)+1:((view_idx *2)+2 )]
-                    #                 t2nd_img_gt= ((t2nd_img_gt * 255))                        
-                    #                 cv2.imwrite(file_name, np.uint8(t2nd_img_gt))
-
-                    #                 iter+=1
-                    #     Total_eval_images+=pred_batch.shape[1]
-                    # ave_loss = sum_loss / N 
-                    # loss_val.append(ave_loss.data)
-                    # print("Total eval images computed with sequence:",N)
-                    # print("Eval averageloss",":",ave_loss.data)
-
-                        
-
-
  
     if args.mode=="eval":
         for name, _ in models.items():
@@ -597,13 +420,12 @@ def training(n_epoch, act,args):
             gt_batch = torch.cat([t[..., -2:] for t in gt_channel_split], dim=-1)
 
             with torch.no_grad():
-                pred_batch, _ = run_steps(x_batch, models, optimizers, connections, vae,
+                pred_batch, _ ,loss= run_steps(x_batch, models, optimizers, connections, vae,
                                                 inference=True, args=args)
                 
             # print(pred_batch.shape)
             
-            #MSE LOSS-together
-            loss = MSE(pred_batch, gt_batch)
+        
             ####
             sum_loss += loss.data * args.vis_bs
             N+=1
