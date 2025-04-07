@@ -26,7 +26,9 @@ import torchvision.models as models
 import torch
 # from torchmetrics.image import StructuralSimilarityIndexMeasure
 import pytorch_ssim
-
+torch.autograd.set_detect_anomaly(True)
+MSE = nn.MSELoss()
+CE = nn.CrossEntropyLoss()
 
 seed = 0
 random.seed(seed)
@@ -73,24 +75,41 @@ class SSTA_Net(nn.Module):
     
 def run_steps(x_batch, models, optimizers, connections, vae, inference = True, args = None):
     
-    num_hidden = [int(x) for x in args.num_hidden.split(',')]
-    batch = x_batch.shape[0]
-    height = x_batch.shape[2]
-    width = x_batch.shape[3]
 
     memory = [None for _ in range(args.num_views)]
 
-    # memory_0 = None  # torch.zeros([batch, num_hidden[0], height, width]).to(args.device)
-    # memory_1 = None  # torch.zeros([batch, num_hidden[0], height, width]).to(args.device)
-    # print(x_batch.shape)
     x_t = torch.split(x_batch, x_batch.shape[-1] // args.num_views, dim=-1)
 
-    # if True:
-    #     view_1 = x_t[0].squeeze().detach().cpu()[0,:,:,0:3]
-    #     view_2 = x_t[1].squeeze().detach().cpu()[0,:,:,0:3]
-    #     views = np.concatenate([view_1, view_2], axis = 0)
-    #     cv2.imshow('view',views)
+    # print(x_t[0].shape)
+
+
+    # for i in range(14):
+    #     # view_1 = x_t[0].squeeze().detach().cpu().numpy()[0, i, :, :,0:3]
+    #     # view_2 = x_t[1].squeeze().detach().cpu().numpy()[0, i, :,:, 0:3]
+
+    #     view_1 = x_batch.squeeze().detach().cpu().numpy()[0, i, :, :,0:3]
+    #     view_2 = x_batch.squeeze().detach().cpu().numpy()[0, i, :,:, 5:8]
+
+    #     # view1-
+
+    # #     # Convert from float (0-1) to uint8 (0-255) if needed
+    # #     if view_1.max() <= 1.0:
+    # #         view_1 = np.uint8(view_1 * 255)
+    # #         view_2 = np.uint8(view_2 * 255)
+
+    # #     # Make sure shape is (H, W, 3)
+    # #     if view_1.shape[0] == 3:
+    # #         view_1 = np.transpose(view_1, (1, 2, 0))
+    # #         view_2 = np.transpose(view_2, (1, 2, 0))
+
+    # #     # Concatenate horizontally
+    #     print(view_1.shape,view_2.shape)
+    #     views = np.concatenate([view_1, view_2], axis=1)
+
+    #     # Show the image
+    #     cv2.imshow('view', views)
     #     cv2.waitKey(100)
+
     # x_0_t, x_1_t = torch.split(x_batch, x_batch.shape[-1] // args.num_views, dim=-1)
     pred_batch_list = [[] for _ in range(args.num_views)]
     message_list = [[] for _ in range(args.num_views)]
@@ -104,12 +123,15 @@ def run_steps(x_batch, models, optimizers, connections, vae, inference = True, a
             messages[ssta_name] = x_t[view][:, 0:0 + 1,:,:, 0:3]
 
     elif args.message_type == 'vae':
-        for view, ssta_name in enumerate(models.keys()):
-            messages[ssta_name] = vae.get_message(x_t[view][:, 0:0 + 1,:,:, 0:3])
+        with torch.no_grad():
+            for view, ssta_name in enumerate(models.keys()):
+                messages[ssta_name] = vae.get_message(x_t[view][:, 0:0 + 1,:,:, 0:3].detach())
 
     else:
         for view, ssta_name in enumerate(models.keys()):
             messages[ssta_name] = torch.zeros((x_batch.shape[0], 1, x_batch.shape[2], x_batch.shape[3], 1)).to(args.device)
+
+
 
     #above messages
     if args.eval_mode == 'multi_step_eval' and inference == True:
@@ -129,10 +151,11 @@ def run_steps(x_batch, models, optimizers, connections, vae, inference = True, a
 
                 
                 if args.message_type in ['vae']:
-                    if t < args.num_past or np.random.uniform(0, 1) > (1-1/args.mask_per_step):  # t % args.mask_per_step == 0:
-                        messages[ssta_key] = vae.get_message(x_t[view][:, t:t + 1,:,:,0:3])
-                    else:
-                        messages[ssta_key] = vae.get_message(x_t_prev_preds[view].detach())
+                    with torch.no_grad():
+                        if t < args.num_past or np.random.uniform(0, 1) > (1-1/args.mask_per_step):  # t % args.mask_per_step == 0:
+                            messages[ssta_key] = vae.get_message(x_t[view][:, t:t + 1,:,:,0:3].detach())
+                        else:
+                            messages[ssta_key] = vae.get_message(x_t_prev_preds[view].detach())
 
                 elif args.message_type in ['raw_data']:
                     messages[ssta_key] = x_t[view][:, t:t + 1,:,:,0:3]
@@ -157,10 +180,10 @@ def run_steps(x_batch, models, optimizers, connections, vae, inference = True, a
 
         
     else:
-        torch.autograd.set_detect_anomaly(True)
-        MSE = nn.MSELoss()
-        CE = nn.CrossEntropyLoss()
+
         loss=0.0
+
+
         x_t_prev_preds = []
         for view in range(args.num_views):
             x_t_prev_preds.append(x_t[view][:, 0:0 + 1,:,:, 0:3])
@@ -168,28 +191,32 @@ def run_steps(x_batch, models, optimizers, connections, vae, inference = True, a
         for t in range(args.train_sequence-1):
             for view, (ssta_key,model) in enumerate(models.items()):
                 model.train()
-
-                for ssta_key in optimizers:
-                    optimizers[ssta_key].zero_grad()
+                optimizers[ssta_key].zero_grad()
 
                 message_others = get_relevant_msgs(ssta_key, messages, connections)
                 # print(x_t_prev_preds[view].shape, messages[ssta_key].shape, len(message_others),print(memory[view]))
-                x_t_pred, messages[ssta_key], memory_temp = model(x_t_prev_preds[view], messages[ssta_key], message_others, memory[view])
+                # print(messages)
+                x_t_pred, _, memory_temp = model(x_t_prev_preds[view], messages[ssta_key], message_others, memory[view])
                 # print("modelout",x_t_pred.shape)
+                # print(messages)
                 
                 memory[view] = [(mem1.detach(), mem2.detach()) for mem1,mem2 in memory_temp]
 
                 if args.message_type in ['vae']:
-                    if t < args.num_past or np.random.uniform(0, 1) > (1-1/args.mask_per_step):  # t % args.mask_per_step == 0:
-                        messages[ssta_key] = vae.get_message(x_t[view][:, t:t + 1,:,:,0:3])
-                        # message_0 = vae.get_message(x_t[:, t:t + 1])
-                    else:
-                        messages[ssta_key] = vae.get_message(x_t_prev_preds[view].detach())
+                    with torch.no_grad():
+                        if t < args.num_past or np.random.uniform(0, 1) > (1-1/args.mask_per_step):  # t % args.mask_per_step == 0:
+                            messages[ssta_key] = vae.get_message(x_t[view][:, t:t + 1,:,:,0:3].detach())
+                            # message_0 = vae.get_message(x_t[:, t:t + 1])
+                        else:
+                            messages[ssta_key] = vae.get_message(x_t_prev_preds[view].detach())
 
                 elif args.message_type in ['raw_data']:
                     messages[ssta_key] = x_t[view][:, t:t + 1,:,:,0:3].detach()
 
                 elif args.message_type == 'zeros':
+                    # print(messages)
+                    # print(ssta_key)
+                    # print(messages[ssta_key])
                     messages[ssta_key] = torch.zeros_like(messages[ssta_key])
 
                 elif args.message_type == 'randn':
@@ -215,7 +242,7 @@ def run_steps(x_batch, models, optimizers, connections, vae, inference = True, a
                 
                 # loss = MSE(x_t_pred, gt_train)
                 # print(loss, ssta_key)
-                loss.backward(retain_graph = True)
+                loss.backward()
                 optimizers[ssta_key].step()
 
                 #softmax apply
@@ -282,6 +309,7 @@ def training(n_epoch, act,args):
     vae_path = os.path.join(args.vae_ckpt_dir, 'vae.pt')
     vae = torch.load(vae_path,weights_only=False)
     vae = vae.to(args.device)
+    vae.eval()
     print('Loaded VAE model_0 from {}'.format(vae_path))
 
     # optimizer = optim.Adam(parameters,lr = 0.0001)
@@ -311,22 +339,28 @@ def training(n_epoch, act,args):
                 N,iter=0,0
                 loss=0.0
                 print('Training ... {}'.format(epoch))
-                train_input_handle.begin(do_shuffle=True)
+                train_input_handle.begin(do_shuffle=False)
                 progress_bar = tqdm(total=333, desc='Epoch Completion')
                 
                 while (train_input_handle.no_batch_left() == False):
                     if epoch==1:progress_bar_total+=1
                      
                     ims = train_input_handle.get_batch()
+                    # print(ims.shape)
                     train_input_handle.next()
                     x_batch = ims[:, :]
+
+
                     
                     gt_batch = ims[:, 1:]
                     x_batch = torch.from_numpy(x_batch.astype(np.float32)).to(args.device)  # .reshape(x.shape[0], 1))
                     gt_batch = torch.from_numpy(gt_batch.astype(np.float32)).to(args.device)  # .reshape(gt.shape[0], 1))
 
                     gt_channel_split= torch.split(gt_batch, gt_batch.shape[-1] // args.num_views, dim=-1)
+
                     gt_batch = torch.cat([t[..., -2:] for t in gt_channel_split], dim=-1)
+
+                    # print(gt_batch.shape)
 
                     pred_batch, message_batch ,loss = run_steps(x_batch, models, optimizers, connections, vae,
                                                         inference=False, args=args)
@@ -584,7 +618,7 @@ if __name__ == "__main__":
     parser.add_argument('--model_type', type=str, default='ssta',help='ssta / vae')
     parser.add_argument('--data_name', type=str, default='ssta_2025')
     parser.add_argument('--act', type=str, default="relu", help='relu')
-    parser.add_argument('--mode', type=str, default="eval", help='train / eval/transfer_learning')
+    parser.add_argument('--mode', type=str, default="train", help='train / eval/transfer_learning')
     parser.add_argument('--eval_mode', type=str, default='multi_step_eval', help='multi_step_eval / single_step_eval')
 
     #ssta paramterts
@@ -627,7 +661,7 @@ if __name__ == "__main__":
     parser.add_argument('--ssta_output_channels', type=int, default=2,help="channels - t2no/t2nd")
     #File paths
     #file to save ssta results
-    parser.add_argument('--gen_frm_dir', type=str, default=r'./ssta_32_32_32_32_apr6_25_latent5')
+    parser.add_argument('--gen_frm_dir', type=str, default=r'./ssta_32_32_32_32_apr7_25_latent5')
     parser.add_argument('--train_data_paths', type=str, default=r"./dataset_02/train")
     parser.add_argument('--valid_data_paths', type=str, default=r"./dataset_02/test")
     parser.add_argument('--vae_ckpt_dir', type=str, default=r"./vae_file_latent5",help='None')

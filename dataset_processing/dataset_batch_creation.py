@@ -85,6 +85,34 @@ class InputHandle:
             input_batch[i, :self.current_input_length, :, :, :] = data_slice
             
         input_batch = input_batch.astype(self.input_data_type)
+
+        # data=input_batch[1,:,:,:,:]
+        # print(input_batch.shape)
+        # print(data.shape)
+        # for i in range(data.shape[1]):
+        #     name = 't2n0_{0:02d}_{1:02d}.png'.format(i + 1, 1)
+        #     img_gt_1 = np.uint8(data[ i, :, :,0:3 ] * 255.)
+        #     img_gt_2 = np.uint8(data[ i, :, :,5:8 ] * 255.)
+
+        #     img_t2no1 = np.uint8(data[i, :, :, 3] * 255.)
+        #     img_t2no1 = cv2.cvtColor(img_t2no1, cv2.COLOR_GRAY2BGR)
+
+        #     img_t2nd1 = np.uint8(data[i, :, :, 4] * 255.)
+        #     img_t2nd1 = cv2.cvtColor(img_t2nd1, cv2.COLOR_GRAY2BGR)
+
+        #     img_t2no2 = np.uint8(data[i, :, :, 8] * 255.)
+        #     img_t2no2 = cv2.cvtColor(img_t2no2, cv2.COLOR_GRAY2BGR)
+
+        #     img_t2nd2 = np.uint8(data[i, :, :, 9] * 255.)
+        #     img_t2nd2 = cv2.cvtColor(img_t2nd2, cv2.COLOR_GRAY2BGR)
+
+        #     # combined = np.concatenate((img_gt_1, img_t2no1, img_t2nd1), axis=1)
+        #     combined = np.concatenate((img_gt_2, img_gt_1), axis=1)
+            
+        #     # img_gt = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+        #     # print(img_gt*255)
+        #     cv2.imshow("ex",combined)
+        #     cv2.waitKey(200)
         return input_batch
 
     def print_stat(self):
@@ -117,6 +145,7 @@ class DataProcess:
         self.t2no_output_channels=self.num_views*1
         self.model_type = input_param.get('model_type')
         self.sequence_index_gap=input_param.get('sequence_index_gap')
+        self.thrshold_time_step_t2no_d=input_param.get('threshold_time_step')
 
         self.ssta_t2n = True if self.model_type == "ssta" else False
         self.datautility=DatasetUtility(self.num_views,self.ssta_t2n)
@@ -146,10 +175,10 @@ class DataProcess:
                 temp_t2no=np.float32(t2no_frames_np[i])
 
                 
-                t_t2nd= cv2.resize(temp_t2nd, (self.image_width, self.image_width)) / 50
+                t_t2nd= cv2.resize(temp_t2nd, (self.image_width, self.image_width)) / self.thrshold_time_step_t2no_d
                 t2nd_data[i, :, :, :]=t_t2nd[..., np.newaxis]
 
-                t_t2no= cv2.resize(temp_t2no, (self.image_width, self.image_width)) / 50
+                t_t2no= cv2.resize(temp_t2no, (self.image_width, self.image_width)) / self.thrshold_time_step_t2no_d
                 t2no_data[i, :, :, :]=t_t2no[..., np.newaxis]
         
         if self.ssta_t2n:
@@ -176,30 +205,43 @@ class DataProcess:
             indices.append(index - self.seq_len + 1)
             index -= self.sequence_index_gap
         indices.append(0) if 0 not in indices else None
-        print(indices)
+        # print(indices)
 
    
 
         self.processed_dataset_info(path,frames_np,data,indices,mode,self.num_views)
         # indices are the total sequences in the combined dataset that is calculated by Total_images -(num_past+num_step), that is each batch
-        
+        # print(data.shape)
         #to display dataset
         # for i in range(data.shape[1]):
         #     name = 't2n0_{0:02d}_{1:02d}.png'.format(i + 1, 1)
         #     file_name = os.path.join(path, name)
-        #     img_gt = np.uint8(data[ i, :, :,5:8 ] * 255.)
-        #     # print(img_gt.shape)
-        #     img_gt=img_gt[:,:,0]
-        #     img_pd =np.uint8(data[ i, :, :,9 ] * 255.)
-        #     views = np.concatenate([img_gt, img_pd], axis = 1)
+        #     img_gt_1 = np.uint8(data[ i, :, :,0:3 ] * 255.)
+        #     img_gt_2 = np.uint8(data[ i, :, :,5:8 ] * 255.)
+
+        #     img_t2no1 = np.uint8(data[i, :, :, 3] * 255.)
+        #     img_t2no1 = cv2.cvtColor(img_t2no1, cv2.COLOR_GRAY2BGR)
+
+        #     img_t2nd1 = np.uint8(data[i, :, :, 4] * 255.)
+        #     img_t2nd1 = cv2.cvtColor(img_t2nd1, cv2.COLOR_GRAY2BGR)
+
+        #     img_t2no2 = np.uint8(data[i, :, :, 8] * 255.)
+        #     img_t2no2 = cv2.cvtColor(img_t2no2, cv2.COLOR_GRAY2BGR)
+
+        #     img_t2nd2 = np.uint8(data[i, :, :, 9] * 255.)
+        #     img_t2nd2 = cv2.cvtColor(img_t2nd2, cv2.COLOR_GRAY2BGR)
+
+        #     # combined = np.concatenate((img_gt_1, img_t2no1, img_t2nd1), axis=1)
+        #     combined = np.concatenate((img_gt_2, img_gt_1), axis=1)
             
         #     # img_gt = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
         #     # print(img_gt*255)
-        #     cv2.imshow("ex",views)
-        #     cv2.waitKey(50)
-        #     # cv2.imwrite(file_name, img_gt)
+        #     cv2.imshow("ex",combined)
+        #     cv2.waitKey(200)
+            
 
         # quit()
+        # print(data.shape,indices)
         return data, indices
     
     def processed_dataset_info(self,path,frames_np,data,indices,mode,ssta_no):
@@ -261,7 +303,7 @@ class DatasetUtility:
             full_path = os.path.join(dataset_path, camera_view)
             for _,folder_name in enumerate(os.listdir(full_path)):
                 folder_path = os.path.join(full_path, folder_name)
-
+                
                 if folder_name=="images":
                         dataset_files[int(camera_view[-1])].extend([os.path.join(folder_path, file) for file in sorted(os.listdir(folder_path),key=self.numerical_sort)])
                         continue
@@ -273,11 +315,7 @@ class DatasetUtility:
                 if self.t2n and folder_name=="t2nd":
                     t2nd_files[int(camera_view[-1])].extend([os.path.join(folder_path, file) for file in sorted(os.listdir(folder_path),key=self.numerical_sort)])
                     continue
-                   
-                
         
-        # import sys
-        # sys.exit(0)
         ## Combine files alternately
         combined_files_dataset= []
         t2nd_combined_files_dataset= []
@@ -301,12 +339,9 @@ class DatasetUtility:
             t2nd_combined_files_dataset = [path for sublist in t2nd_sorted_file_paths for path in sublist]
             t2nd_combined_files_dataset_np = np.stack([np.array(Image.open(path)) for path in t2nd_combined_files_dataset])
 
-            # print(t2no_combined_files_dataset)
-            # quit()
             return comb_files_dataset_np,t2nd_combined_files_dataset_np[..., np.newaxis],t2no_combined_files_dataset_np[..., np.newaxis]
 
 
-        # print(combined_files_dataset_np.shape)
         return combined_files_dataset_np
   
 

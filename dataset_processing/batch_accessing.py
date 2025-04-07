@@ -24,7 +24,8 @@ def data_provider(dataset_name, train_data_paths, valid_data_paths, batch_size,
                    'baseline': baseline,
                    'n_epoch': n_epoch,
                    "model_type":args.model_type,
-                   "sequence_index_gap":args.sequence_index_gap
+                   "sequence_index_gap":args.sequence_index_gap,
+                   "threshold_time_step":args.threshold_time_step
                    
                    }
     
@@ -40,7 +41,8 @@ def data_provider(dataset_name, train_data_paths, valid_data_paths, batch_size,
                             'img_channel': img_channel,
                             'n_epoch': n_epoch,
                             "model_type":args.model_type,
-                            "sequence_index_gap":args.sequence_index_gap}
+                            "sequence_index_gap":args.sequence_index_gap,
+                             "threshold_time_step":args.threshold_time_step}
         train_input_handle = DataProcess(train_input_param)
         train_input_handle = train_input_handle.get_train_input_handle()
         train_input_handle.begin(do_shuffle=True)
