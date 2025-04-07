@@ -62,7 +62,7 @@ class SSTA_Net(nn.Module):
         pred_x_tp1 = pred_x_tp1.permute(0, 2, 3, 4, 1)
         B, T, H, W, C = pred_x_tp1.shape  # C should be 200
         if args.loss_fn=="ce":
-            pred_x_tp1 = pred_x_tp1.view(B, T, H, W, 2, C //2 )
+            pred_x_tp1 = pred_x_tp1.view(B, T, H, W, 2, C // 2 )
         pred_x_tp1 = F.sigmoid(pred_x_tp1)
         return pred_x_tp1, message, frame_predictor_hidden
 
@@ -206,14 +206,20 @@ def run_steps(x_batch, models, optimizers, connections, vae, inference = True, a
                 pred_cngd = pred_cngd.permute(0, 4, 1, 2, 3)  # New shape: [3, 100, 128, 128, 2]
 
                 loss = CE(pred_cngd, gt_cngd)
-
-                if args.loss_fn=="ce": x_t_pred = x_t_pred.argmax(dim=-1)  # This will reduce the last dimension
-
+                
                 # loss = MSE(x_t_pred, gt_train)
                 # print(loss, ssta_key)
                 loss.backward(retain_graph = True)
                 optimizers[ssta_key].step()
-                
+
+                #softmax apply
+
+                if args.loss_fn == "ce":
+                    # Apply softmax along the last dimension to get probabilities
+                    x_t_pred = torch.softmax(x_t_pred, dim=-1)
+                    # Then, take argmax to obtain the predicted class indices
+                    x_t_pred = x_t_pred.argmax(dim=-1)
+
                 pred_batch_list[view].append(x_t_pred)
                 message_list[view].append(messages[ssta_key])
 
@@ -287,6 +293,7 @@ def training(n_epoch, act,args):
     if args.mode=="transfer_learning":
         continue_epoch=args.continue_epoch
 
+    progress_bar_total=0
     if args.mode=="train" or args.mode=="transfer_learning":
         for epoch in range(1+continue_epoch, n_epoch + 1):
             print("-----------------------",epoch,"------------------")
@@ -299,9 +306,10 @@ def training(n_epoch, act,args):
                 loss=0.0
                 print('Training ... {}'.format(epoch))
                 train_input_handle.begin(do_shuffle=True)
-                progress_bar = tqdm(total=train_input_handle.total()-200, desc='Epoch Completion')
+                progress_bar = tqdm(total=progress_bar_total, desc='Epoch Completion')
                 
                 while (train_input_handle.no_batch_left() == False):
+                    if epoch==1:progress_bar_total+=1
                      
                     ims = train_input_handle.get_batch()
                     train_input_handle.next()
@@ -570,7 +578,7 @@ if __name__ == "__main__":
     parser.add_argument('--model_type', type=str, default='ssta',help='ssta / vae')
     parser.add_argument('--data_name', type=str, default='ssta_2025')
     parser.add_argument('--act', type=str, default="relu", help='relu')
-    parser.add_argument('--mode', type=str, default="train", help='train / eval/transfer_learning')
+    parser.add_argument('--mode', type=str, default="transfer_learning", help='train / eval/transfer_learning')
     parser.add_argument('--eval_mode', type=str, default='single_step_eval', help='multi_step_eval / single_step_eval')
 
     #ssta paramterts
@@ -582,7 +590,7 @@ if __name__ == "__main__":
     parser.add_argument('--sequence_index_gap', type=int, default=10)
 
     parser.add_argument('--n_epoch', type=int, default=200, help='200')
-    parser.add_argument('--continue_epoch', type=int, default=0, help='200')
+    parser.add_argument('--continue_epoch', type=int, default=42, help='200')
 
     parser.add_argument('--bs', type=int, default=3)
     parser.add_argument('--vis_bs', type=int, default=3)
@@ -617,7 +625,7 @@ if __name__ == "__main__":
     parser.add_argument('--train_data_paths', type=str, default=r"./dataset_02/train")
     parser.add_argument('--valid_data_paths', type=str, default=r"./dataset_02/test")
     parser.add_argument('--vae_ckpt_dir', type=str, default=r"./vae_file_latent5",help='None')
-    parser.add_argument('--ckpt_dir', type=str, default=r'./ssta_trained/pn_inference_32_32_32_32_t2no15/SSTA_model/1', help='checkpoint dir')
+    parser.add_argument('--ckpt_dir', type=str, default=r'./ssta_32_32_32_32_apr6_25_latent5/SSTA_model/42', help='checkpoint dir')
 
     args = parser.parse_args()
     args.gen_frm_dir = os.path.join(args.gen_frm_dir)
