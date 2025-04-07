@@ -197,15 +197,19 @@ def run_steps(x_batch, models, optimizers, connections, vae, inference = True, a
                 gt_train =  x_t[view][:, t:t + 1,:,:, 3:]
                 # print(x_t_pred.shape, x_t_prev_preds[view].shape, gt_train.shape)
 
+                if args.loss_fn == "mse":
+                    loss = MSE(x_t_pred, gt_train)
+
                 # ce_gt_train = gt_train[-1, args.threshold_time_step]
                 # ce_pd_train = x_t_pred[-1, args.threshold_time_step]
-                pred_cngd = x_t_pred.squeeze(1)   # New shape: [3, 128, 128, 2, 100]
-                gt_cngd = gt_train.squeeze(1) 
-                gt_cngd = gt_cngd.long()
+                if args.loss_fn == "ce":
+                    pred_cngd = x_t_pred.squeeze(1)   # New shape: [3, 128, 128, 2, 100]
+                    gt_cngd = gt_train.squeeze(1) 
+                    gt_cngd = gt_cngd.long()
 
-                pred_cngd = pred_cngd.permute(0, 4, 1, 2, 3)  # New shape: [3, 100, 128, 128, 2]
+                    pred_cngd = pred_cngd.permute(0, 4, 1, 2, 3)  # New shape: [3, 100, 128, 128, 2]
 
-                loss = CE(pred_cngd, gt_cngd)
+                    loss = CE(pred_cngd, gt_cngd)
                 
                 # loss = MSE(x_t_pred, gt_train)
                 # print(loss, ssta_key)
@@ -306,7 +310,7 @@ def training(n_epoch, act,args):
                 loss=0.0
                 print('Training ... {}'.format(epoch))
                 train_input_handle.begin(do_shuffle=True)
-                progress_bar = tqdm(total=progress_bar_total, desc='Epoch Completion')
+                progress_bar = tqdm(total=333, desc='Epoch Completion')
                 
                 while (train_input_handle.no_batch_left() == False):
                     if epoch==1:progress_bar_total+=1
@@ -578,7 +582,7 @@ if __name__ == "__main__":
     parser.add_argument('--model_type', type=str, default='ssta',help='ssta / vae')
     parser.add_argument('--data_name', type=str, default='ssta_2025')
     parser.add_argument('--act', type=str, default="relu", help='relu')
-    parser.add_argument('--mode', type=str, default="transfer_learning", help='train / eval/transfer_learning')
+    parser.add_argument('--mode', type=str, default="train", help='train / eval/transfer_learning')
     parser.add_argument('--eval_mode', type=str, default='single_step_eval', help='multi_step_eval / single_step_eval')
 
     #ssta paramterts
@@ -590,10 +594,10 @@ if __name__ == "__main__":
     parser.add_argument('--sequence_index_gap', type=int, default=10)
 
     parser.add_argument('--n_epoch', type=int, default=200, help='200')
-    parser.add_argument('--continue_epoch', type=int, default=42, help='200')
+    parser.add_argument('--continue_epoch', type=int, default=0, help='200')
 
-    parser.add_argument('--bs', type=int, default=3)
-    parser.add_argument('--vis_bs', type=int, default=3)
+    parser.add_argument('--bs', type=int, default=2)
+    parser.add_argument('--vis_bs', type=int, default=2)
     parser.add_argument('--disp_eval_images', type=int, default=60)
     parser.add_argument('--save_eval_images', type=bool, default=True)
     parser.add_argument('--mask_per_step', type=int, default=1000000000)
@@ -603,7 +607,7 @@ if __name__ == "__main__":
     parser.add_argument('--beta', type=float, default=1)
     parser.add_argument('--threshold_time_step', type=int, default=100,help="timestep of t2no/t2nd")
     parser.add_argument('--device', type=str, default='cuda:0', help='cuda:0 cuda:0; cpu:0 cpu:0')
-    parser.add_argument('--loss_fn', type=str, default='ce', help='ce/ mse /bce')
+    parser.add_argument('--loss_fn', type=str, default='mse', help='ce/ mse /bce')
 
     # parser.add_argument('--num_step', type=int, default=15)
     parser.add_argument('--num_past', type=int, default=4)
@@ -618,7 +622,7 @@ if __name__ == "__main__":
     parser.add_argument('--message_type', type=str, default='vae', help='normal, zeros, randn, raw_data, vae')
     #trained vae model latent dimesion same as loaded model
     parser.add_argument('--vae_latent_dim', type=int, default=5)
-    parser.add_argument('--ssta_output_channels', type=int, default=0,help="timestep of t2no/t2nd")
+    parser.add_argument('--ssta_output_channels', type=int, default=2,help="channels - t2no/t2nd")
     #File paths
     #file to save ssta results
     parser.add_argument('--gen_frm_dir', type=str, default=r'./ssta_32_32_32_32_apr6_25_latent5')
