@@ -119,10 +119,11 @@ def run_steps(x_batch, models, optimizers, connections, vae, inference = True, a
             x_t_prev_preds.append(x_t[view][:, 0:0 + 1,:,:, 0:3])
  
         use_gt_flag = False
-        for t in range(args.valid_sequence - 1):
-            message_others = get_relevant_msgs(ssta_key, messages, connections)
+        for t in range(args.train_sequence - 1):
+           
 
             for view, (ssta_key,model) in enumerate(models.items()):
+                message_others = get_relevant_msgs(ssta_key, messages, connections)
                 
                 x_t_pred, messages[ssta_key], memory[view] = model(x_t_prev_preds[view], messages[ssta_key], message_others, memory[view])
 
@@ -146,6 +147,7 @@ def run_steps(x_batch, models, optimizers, connections, vae, inference = True, a
 
                 pred_batch_list[view].append(x_t_pred)
                 message_list[view].append(messages[ssta_key])
+                loss=0
 
         pred_batch_before = [torch.cat(first,1) for first in pred_batch_list]
         pred_batch = torch.cat(pred_batch_before, -1)
@@ -443,13 +445,13 @@ def training(n_epoch, act,args):
             gt_batch = torch.cat([t[..., -2:] for t in gt_channel_split], dim=-1)
 
             with torch.no_grad():
-                pred_batch, _ ,loss= run_steps(x_batch, models, optimizers, connections, vae,
+                pred_batch, _ ,_= run_steps(x_batch, models, optimizers, connections, vae,
                                                 inference=True, args=args)
                 
             
         
             ####
-            sum_loss += loss.data * args.vis_bs
+            # sum_loss += loss.data * args.vis_bs
             N+=1
             
             pred_batch = pred_batch.detach().cpu().numpy()
@@ -515,9 +517,9 @@ def training(n_epoch, act,args):
             
 
 
-        ave_loss = sum_loss / N 
+        # ave_loss = sum_loss / N 
         print("Total eval images computed with sequence:",N)
-        print("Eval averageloss",":",ave_loss)
+        # print("Eval averageloss",":",ave_loss)
         
 
 
@@ -530,7 +532,7 @@ def load_sstas(n, paths_list):
     
     for i in range(n):
         ssta_name = 'ssta_' + str(i)
-        models[ssta_name] = torch.load(paths_list[0])
+        models[ssta_name] = torch.load(paths_list[0],weights_only=False)
         optimizers[ssta_name] = optim.Adam(models[ssta_name].parameters(), lr = 0.0001)
         
 
@@ -582,8 +584,8 @@ if __name__ == "__main__":
     parser.add_argument('--model_type', type=str, default='ssta',help='ssta / vae')
     parser.add_argument('--data_name', type=str, default='ssta_2025')
     parser.add_argument('--act', type=str, default="relu", help='relu')
-    parser.add_argument('--mode', type=str, default="train", help='train / eval/transfer_learning')
-    parser.add_argument('--eval_mode', type=str, default='single_step_eval', help='multi_step_eval / single_step_eval')
+    parser.add_argument('--mode', type=str, default="eval", help='train / eval/transfer_learning')
+    parser.add_argument('--eval_mode', type=str, default='multi_step_eval', help='multi_step_eval / single_step_eval')
 
     #ssta paramterts
     parser.add_argument('--num_views', type=int, default=2, help='num views')
@@ -629,7 +631,7 @@ if __name__ == "__main__":
     parser.add_argument('--train_data_paths', type=str, default=r"./dataset_02/train")
     parser.add_argument('--valid_data_paths', type=str, default=r"./dataset_02/test")
     parser.add_argument('--vae_ckpt_dir', type=str, default=r"./vae_file_latent5",help='None')
-    parser.add_argument('--ckpt_dir', type=str, default=r'./ssta_32_32_32_32_apr6_25_latent5/SSTA_model/42', help='checkpoint dir')
+    parser.add_argument('--ckpt_dir', type=str, default=r'./ssta_32_32_32_32_apr6_25_latent5/SSTA_model/19', help='checkpoint dir')
 
     args = parser.parse_args()
     args.gen_frm_dir = os.path.join(args.gen_frm_dir)
