@@ -6,6 +6,7 @@ import logging
 import random
 from itertools import zip_longest, chain
 import re
+import sys
 
 logger = logging.getLogger(__name__)
 class InputHandle:
@@ -174,12 +175,39 @@ class DataProcess:
                 temp_t2nd=np.float32(t2nd_frames_np[i])
                 temp_t2no=np.float32(t2no_frames_np[i])
 
-                
-                t_t2nd= cv2.resize(temp_t2nd, (self.image_width, self.image_width)) / self.thrshold_time_step_t2no_d
+                t_t2no_pre= cv2.resize(temp_t2no, (self.image_width, self.image_width))
+
+                t_t2no= t_t2no_pre / self.thrshold_time_step_t2no_d
+
+                t_t2nd_pre= cv2.resize(temp_t2nd, (self.image_width, self.image_width))
+
+                t_t2nd_pre[t_t2nd_pre == 0] = np.float32(self.thrshold_time_step_t2no_d)
+
+                t_t2nd= t_t2nd_pre / self.thrshold_time_step_t2no_d
+
+                # print(t_t2nd_pre)
+                # print("--")
+                # print(t_t2no_pre)
+
+                # delta_d=(t_t2nd_pre - t_t2no_pre) / self.thrshold_time_step_t2no_d
+
+                # temp_t2nd_uint8 = (t_t2no*255 ).astype(np.uint8)
+                # temp_t2no_uint8 = (t_t2nd*255 ).astype(np.uint8)
+                # # np.set_printoptions(threshold=np.inf)
+
+                # cv2.imwrite("shape0.jpg",temp_t2nd_uint8)
+                # cv2.imwrite("shaped.jpg",temp_t2no_uint8)
+                # sys.exit(0)
+
+                # print(t_t2no)
+                # print("---")
+                # print(t_t2nd)
+
+                t2no_data[i, :, :, :]=t_t2no[..., np.newaxis]
+            
                 t2nd_data[i, :, :, :]=t_t2nd[..., np.newaxis]
 
-                t_t2no= cv2.resize(temp_t2no, (self.image_width, self.image_width)) / self.thrshold_time_step_t2no_d
-                t2no_data[i, :, :, :]=t_t2no[..., np.newaxis]
+               
         
         if self.ssta_t2n:
             batch_channel=self.img_channel+2
