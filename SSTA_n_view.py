@@ -43,9 +43,10 @@ def dice_loss(pred, target, smooth=1e-6):
     return 1 - ((2. * intersection + smooth) / (pred.sum() + target.sum() + smooth))
 
 def combo_loss(pred, target):
-    bce = F.binary_cross_entropy_with_logits(pred, target)
+    # bce = F.binary_cross_entropy_with_logits(pred, target)
     dsc = dice_loss(pred, target)
-    return 0.5 * bce + 0.5 * dsc
+    return dsc
+    # return 0.5 * bce + 0.5 * dsc
 
 
 class SSTA_Net(nn.Module):
@@ -152,229 +153,176 @@ def run_steps(x_batch, models, optimizers, connections, vae, inference = True, a
 
 
 
-    #above messages
-    #############need to revamp this whole section
-    if args.eval_mode == 'multi_step_eval' and inference == True:
 
-        x_t_prev_preds = []
-        for view in range(args.num_views):
-            x_t_prev_preds.append(x_t[view][:, 0:0 + 1,:,:, 0:3])
- 
-        use_gt_flag = False
-        for t in range(args.train_sequence - 1):
-           
-
-            for view, (ssta_key,model) in enumerate(models.items()):
-                message_others = get_relevant_msgs(ssta_key, messages, connections)
-                
-                x_t_pred, messages[ssta_key], memory[view] = model(x_t_prev_preds[view], messages[ssta_key], message_others, memory[view])
-                # print(x_t_pred.shape)
-
-                
-                if args.message_type in ['vae']:
-                    with torch.no_grad():
-                        if t < args.num_past or np.random.uniform(0, 1) > (1-1/args.mask_per_step):  # t % args.mask_per_step == 0:
-                            messages[ssta_key] = vae.get_message(x_t[view][:, t:t + 1,:,:,0:3].detach())
-                        else:
-                            messages[ssta_key] = vae.get_message(x_t_prev_preds[view].detach())
-
-                elif args.message_type in ['raw_data']:
-                    messages[ssta_key] = x_t[view][:, t:t + 1,:,:,0:3]
-
-                elif args.message_type == 'zeros':
-                    messages[ssta_key] = torch.zeros_like(messages[ssta_key])
-
-                elif args.message_type == 'randn':
-                    messages[ssta_key] = torch.randn_like(messages[ssta_key])
-
-                x_t_prev_preds[view] = x_t[view][:, t+1:t+2,:,:, 0:3]
-
-                pred_batch_list[view].append(x_t_pred)
-                message_list[view].append(messages[ssta_key])
-                loss=0
-
-        pred_batch_before = [torch.cat(first,1) for first in pred_batch_list]
-        pred_batch = torch.cat(pred_batch_before, -1)
-
-        message_list_before = [torch.cat(first,1) for first in message_list]
-        message_batch = torch.cat(message_list_before, -1)
-
-        
-    else:
-
-        loss=0.0
-        x_t_prev_preds = []
-        for view in range(args.num_views):
-            x_t_prev_preds.append(x_t[view][:, 0:0 + 1,:,:, 0:3])
-        
-        for t in range(args.train_sequence-1):
-            for view, (ssta_key,model) in enumerate(models.items()):
-                model.train()
+    loss=0.0
+    x_t_prev_preds = []
+    for view in range(args.num_views):
+        x_t_prev_preds.append(x_t[view][:, 0:0 + 1,:,:, 0:3])
+    
+    for t in range(args.train_sequence-1):
+        for view, (ssta_key,model) in enumerate(models.items()):
+            if inference==False: model.eval()
+            else:model.train()
+            if inference==False:
                 optimizers[ssta_key].zero_grad()
 
-                message_others = get_relevant_msgs(ssta_key, messages, connections)
-                # print(x_t_prev_preds[view].shape, messages[ssta_key].shape, len(message_others),print(memory[view]))
-                # print(messages)
-                x_t_pred, _, memory_temp = model(x_t_prev_preds[view], messages[ssta_key], message_others, memory[view])
-                # print("modelout",x_t_pred.shape)
-                # print(messages)
-                
-                memory[view] = [(mem1.detach(), mem2.detach()) for mem1,mem2 in memory_temp]
+            message_others = get_relevant_msgs(ssta_key, messages, connections)
+            # print(x_t_prev_preds[view].shape, messages[ssta_key].shape, len(message_others),print(memory[view]))
+            # print(messages)
+            x_t_pred, _, memory_temp = model(x_t_prev_preds[view], messages[ssta_key], message_others, memory[view])
+            # print("modelout",x_t_pred.shape)
+            # print(messages)
+            
+            memory[view] = [(mem1.detach(), mem2.detach()) for mem1,mem2 in memory_temp]
 
-                if args.message_type in ['vae']:
-                    with torch.no_grad():
-                        if t < args.num_past or np.random.uniform(0, 1) > (1-1/args.mask_per_step):  # t % args.mask_per_step == 0:
-                            messages[ssta_key] = vae.get_message(x_t[view][:, t:t + 1,:,:,0:3].detach())
-                            # message_0 = vae.get_message(x_t[:, t:t + 1])
-                        else:
-                            messages[ssta_key] = vae.get_message(x_t_prev_preds[view].detach())
-
-                elif args.message_type in ['raw_data']:
-                    messages[ssta_key] = x_t[view][:, t:t + 1,:,:,0:3].detach()
-
-                elif args.message_type == 'zeros':
-                    # print(messages)
-                    # print(ssta_key)
-                    # print(messages[ssta_key])
-                    messages[ssta_key] = torch.zeros_like(messages[ssta_key])
-
-                elif args.message_type == 'randn':
-                    messages[ssta_key] = torch.randn_like(messages[ssta_key])
-
-                
-                gt_train =  x_t[view][:, t:t + 1,:,:, 3:]
-                # print(x_t_pred.shape, x_t_prev_preds[view].shape, gt_train.shape)
-
-                if args.loss_fn == "detr":
-
-                    bce_loss, mse_t2no_loss, mse_t2nd_loss=0.0 ,0.0 , 0.0
-
-                    gt_mask=(gt_train[...,0]!=1).float()
-                    
-                    # np.set_printoptions(threshold=np.inf)
-
-                    # if view==0:
-
-                    #     # print(gt_train[...,0])
-                    #     # Example: save the 0th image in the batch
-                    #     pred_img = x_t_pred[...,1][0, 0].detach().cpu().numpy()
-                    #     gt_img = gt_train[...,1][0, 0].detach().cpu().numpy()
-
-                    #     # print(pred_img)
-                    #     # print("-----")
-                    #     # print(gt_img)
-
-                    #     # Optional: normalize if values aren't already in [0, 255]
-                    #     pred_img = (pred_img * 255).astype('uint8')  # if in [0,1]
-                    #     gt_img = (gt_img * 255).astype('uint8')
-
-                    #     # Save with OpenCV
-                    #     cv2.imwrite('pred_img.png', pred_img)
-                    #     cv2.imwrite('gt_img.png', gt_img)
-                    # sys.exit(0)
-
-
-                    ##
-                    bce_loss=F.binary_cross_entropy_with_logits(x_t_pred[...,2],gt_mask)
-
-                    mask = gt_mask.bool() 
-
-                    if mask.sum() !=0:
-                        masked_t2no_pred, masked_t2nd_pred= x_t_pred[...,0][mask],x_t_pred[...,1][mask]
-
-                        masked_gtno, masked_gtnd= gt_train[...,0][mask],gt_train[...,1][mask]
-
-                        mse_t2no_loss = F.mse_loss(masked_t2no_pred,masked_gtno)
-
-                        mse_t2nd_loss = F.mse_loss(masked_t2nd_pred,masked_gtnd)
+            if args.message_type in ['vae']:
+                with torch.no_grad():
+                    if t < args.num_past or np.random.uniform(0, 1) > (1-1/args.mask_per_step):  # t % args.mask_per_step == 0:
+                        messages[ssta_key] = vae.get_message(x_t[view][:, t:t + 1,:,:,0:3].detach())
+                        # message_0 = vae.get_message(x_t[:, t:t + 1])
                     else:
-                        mse_t2no_loss = torch.tensor(0.0, device=x_t_pred.device)
- 
-                        mse_t2nd_loss = torch.tensor(0.0, device=x_t_pred.device)
+                        messages[ssta_key] = vae.get_message(x_t_prev_preds[view].detach())
 
-                    loss = bce_loss + mse_t2no_loss + mse_t2nd_loss
+            elif args.message_type in ['raw_data']:
+                messages[ssta_key] = x_t[view][:, t:t + 1,:,:,0:3].detach()
 
-                    gt_mask_expanded = gt_mask.unsqueeze(-1)
-                    # Step 2: Concatenate along the last dimension
-                    gt_train_combined = torch.cat([gt_train, gt_mask_expanded], dim=-1)
+            elif args.message_type == 'zeros':
+                # print(messages)
+                # print(ssta_key)
+                # print(messages[ssta_key])
+                messages[ssta_key] = torch.zeros_like(messages[ssta_key])
 
+            elif args.message_type == 'randn':
+                messages[ssta_key] = torch.randn_like(messages[ssta_key])
 
+            
+            gt_train =  x_t[view][:, t:t + 1,:,:, 3:]
+            # print(x_t_pred.shape, x_t_prev_preds[view].shape, gt_train.shape)
 
-                if args.loss_fn == "ssim":
-                    # Compute binary mask for BCE loss
-                    gt_mask = (gt_train[..., 0] != 1).float()
+            if args.loss_fn == "detr":
 
-                    # BCE loss on third channel (assuming logits)
-                    # bce_loss = F.binary_cross_entropy_with_logits(x_t_pred[..., 2], gt_mask)
-                    bce_loss = combo_loss(x_t_pred[...,2],gt_mask)
+                bce_loss, mse_t2no_loss, mse_t2nd_loss=0.0 ,0.0 , 0.0
 
-                    # Ensure tensors have channel dimension: [B, 1, H, W]
-                    pred_t2no = x_t_pred[..., 0].unsqueeze(1)
-                    gt_t2no   = gt_train[..., 0].unsqueeze(1)
-
-                    pred_t2nd = x_t_pred[..., 1].unsqueeze(1)
-                    gt_t2nd   = gt_train[..., 1].unsqueeze(1)
-
-                    # SSIM losses (mean SSIM values)
-                    ssim_loss_t2no = 1 - ssim(pred_t2no, gt_t2no, data_range=1.0, size_average=True)
-                    ssim_loss_t2nd = 1 - ssim(pred_t2nd, gt_t2nd, data_range=1.0, size_average=True)
-
-                    # Combine all losses
-                    loss = bce_loss + ssim_loss_t2no + ssim_loss_t2nd
-
-                    # print(f"BCE: {bce_loss.item():.4f}, SSIM T2NO: {ssim_loss_t2no.item():.4f}, SSIM T2ND: {ssim_loss_t2nd.item():.4f}")
-
-                    gt_mask_expanded = gt_mask.unsqueeze(-1)
-                    # Step 2: Concatenate along the last dimension
-                    gt_train_combined = torch.cat([gt_train, gt_mask_expanded], dim=-1)
-
-
-
-
-
-
-
-                if args.loss_fn == "mse":
-                    loss = MSE(x_t_pred, gt_train)
-
-                if args.loss_fn == "bce":
-                    loss = BCE(x_t_pred, gt_train)
-
-                if args.loss_fn == "ce":
-                    pred_cngd = x_t_pred.squeeze(1)   # New shape: [3, 128, 128, 2, 100]
-                    gt_cngd = gt_train.squeeze(1) 
-                    gt_cngd = gt_cngd.long()
-
-                    pred_cngd = pred_cngd.permute(0, 4, 1, 2, 3)  # New shape: [3, 100, 128, 128, 2]
-
-                    loss = CE(pred_cngd, gt_cngd)
+                gt_mask=(gt_train[...,0]!=1).float()
                 
+                # np.set_printoptions(threshold=np.inf)
 
+                # if view==0:
+
+                #     # print(gt_train[...,0])
+                #     # Example: save the 0th image in the batch
+                #     pred_img = x_t_pred[...,1][0, 0].detach().cpu().numpy()
+                #     gt_img = gt_train[...,1][0, 0].detach().cpu().numpy()
+
+                #     # print(pred_img)
+                #     # print("-----")
+                #     # print(gt_img)
+
+                #     # Optional: normalize if values aren't already in [0, 255]
+                #     pred_img = (pred_img * 255).astype('uint8')  # if in [0,1]
+                #     gt_img = (gt_img * 255).astype('uint8')
+
+                #     # Save with OpenCV
+                #     cv2.imwrite('pred_img.png', pred_img)
+                #     cv2.imwrite('gt_img.png', gt_img)
+                # sys.exit(0)
+
+
+                ##
+                bce_loss=F.binary_cross_entropy_with_logits(x_t_pred[...,2],gt_mask)
+
+                mask = gt_mask.bool() 
+
+                if mask.sum() !=0:
+                    masked_t2no_pred, masked_t2nd_pred= x_t_pred[...,0][mask],x_t_pred[...,1][mask]
+
+                    masked_gtno, masked_gtnd= gt_train[...,0][mask],gt_train[...,1][mask]
+
+                    mse_t2no_loss = F.mse_loss(masked_t2no_pred,masked_gtno)
+
+                    mse_t2nd_loss = F.mse_loss(masked_t2nd_pred,masked_gtnd)
+                else:
+                    mse_t2no_loss = torch.tensor(0.0, device=x_t_pred.device)
+
+                    mse_t2nd_loss = torch.tensor(0.0, device=x_t_pred.device)
+
+                loss = bce_loss + mse_t2no_loss + mse_t2nd_loss
+
+                gt_mask_expanded = gt_mask.unsqueeze(-1)
+                # Step 2: Concatenate along the last dimension
+                gt_train_combined = torch.cat([gt_train, gt_mask_expanded], dim=-1)
+
+
+
+            if args.loss_fn == "ssim":
+                # Compute binary mask for BCE loss
+                gt_mask = (gt_train[..., 0] != 1).float()
+
+                # BCE loss on third channel (assuming logits)
+                # bce_loss = F.binary_cross_entropy_with_logits(x_t_pred[..., 2], gt_mask)
+                bce_loss = combo_loss(x_t_pred[...,2],gt_mask)
+
+                # Ensure tensors have channel dimension: [B, 1, H, W]
+                pred_t2no = x_t_pred[..., 0].unsqueeze(1)
+                gt_t2no   = gt_train[..., 0].unsqueeze(1)
+
+                pred_t2nd = x_t_pred[..., 1].unsqueeze(1)
+                gt_t2nd   = gt_train[..., 1].unsqueeze(1)
+
+                # SSIM losses (mean SSIM values)
+                ssim_loss_t2no = 1 - ssim(pred_t2no, gt_t2no, data_range=1.0, size_average=True)
+                ssim_loss_t2nd = 1 - ssim(pred_t2nd, gt_t2nd, data_range=1.0, size_average=True)
+
+                # Combine all losses
+                loss = bce_loss + ssim_loss_t2no + ssim_loss_t2nd
+
+                # print(f"BCE: {bce_loss.item():.4f}, SSIM T2NO: {ssim_loss_t2no.item():.4f}, SSIM T2ND: {ssim_loss_t2nd.item():.4f}")
+
+                gt_mask_expanded = gt_mask.unsqueeze(-1)
+                # Step 2: Concatenate along the last dimension
+                gt_train_combined = torch.cat([gt_train, gt_mask_expanded], dim=-1)
+
+            if args.loss_fn == "mse":
+                loss = MSE(x_t_pred, gt_train)
+
+            if args.loss_fn == "bce":
+                loss = BCE(x_t_pred, gt_train)
+
+            if args.loss_fn == "ce":
+                pred_cngd = x_t_pred.squeeze(1)   # New shape: [3, 128, 128, 2, 100]
+                gt_cngd = gt_train.squeeze(1) 
+                gt_cngd = gt_cngd.long()
+
+                pred_cngd = pred_cngd.permute(0, 4, 1, 2, 3)  # New shape: [3, 100, 128, 128, 2]
+
+                loss = CE(pred_cngd, gt_cngd)
+            
+            if inference==False:
                 loss.backward()
                 optimizers[ssta_key].step()
 
-                #softmax apply
+            #softmax apply
 
-                if args.loss_fn == "ce":
-                    # Apply softmax along the last dimension to get probabilities
-                    x_t_pred = torch.softmax(x_t_pred, dim=-1)
-                    # Then, take argmax to obtain the predicted class indices
-                    x_t_pred = x_t_pred.argmax(dim=-1)
+            if args.loss_fn == "ce":
+                # Apply softmax along the last dimension to get probabilities
+                x_t_pred = torch.softmax(x_t_pred, dim=-1)
+                # Then, take argmax to obtain the predicted class indices
+                x_t_pred = x_t_pred.argmax(dim=-1)
 
-                pred_batch_list[view].append(x_t_pred)
-                train_list[view].append(gt_train_combined)
-                message_list[view].append(messages[ssta_key])
+            pred_batch_list[view].append(x_t_pred)
+            train_list[view].append(gt_train_combined)
+            message_list[view].append(messages[ssta_key])
 
-                x_t_prev_preds[view] = x_t[view][:, t+1:t+2,:,:, 0:3]
+            x_t_prev_preds[view] = x_t[view][:, t+1:t+2,:,:, 0:3]
 
-        pred_batch_before = [torch.cat(first,1) for first in pred_batch_list]
-        pred_batch = torch.cat(pred_batch_before, -1)
+    pred_batch_before = [torch.cat(first,1) for first in pred_batch_list]
+    pred_batch = torch.cat(pred_batch_before, -1)
 
-        message_list_before = [torch.cat(first,1) for first in message_list]
-        message_batch = torch.cat(message_list_before, -1)
+    message_list_before = [torch.cat(first,1) for first in message_list]
+    message_batch = torch.cat(message_list_before, -1)
 
-        train_list_before = [torch.cat(first,1) for first in train_list]
-        train_batch = torch.cat(train_list_before, -1)
+    train_list_before = [torch.cat(first,1) for first in train_list]
+    train_batch = torch.cat(train_list_before, -1)
 
     return train_batch, pred_batch, message_batch , loss  
 
@@ -531,7 +479,7 @@ def training(n_epoch, act,args):
                 input_batch=torch.cat([t[..., :3] for t in gt_channel_split], dim=-1)
                 input_batch = input_batch.detach().cpu().numpy()
 
-
+ 
                 for view_idx in range(args.num_views):
 
                     path=os.path.join(root_res_path,"Train_images", str(epoch))
@@ -574,8 +522,6 @@ def training(n_epoch, act,args):
                         cv2.imwrite(file_name, np.uint8(t2nd_img_gt))
 
 
-
-
                     for i in range(pred_batch.shape[1]):
                         name = 'pdmask_{0:02d}_{1:02d}.png'.format(i + 1, view_idx)
                         file_name = os.path.join(path, name)
@@ -605,8 +551,6 @@ def training(n_epoch, act,args):
                         result_t2no = ((result_t2no_raw * 255))                        
                         cv2.imwrite(file_name, np.uint8(result_t2no))
 
-                   
-
 
                     for i in range(pred_batch.shape[1]):
                         name_1 = 'pdt2nd_{0:02d}_{1:02d}.png'.format(i + 1, view_idx)
@@ -633,9 +577,6 @@ def training(n_epoch, act,args):
                         cv2.imwrite(file_name1, np.uint8(t2nd_img_pd))
                         # cv2.imwrite(file_name2, np.uint8(deld_img_pd))
                         # cv2.imwrite(file_name3, np.uint8(raw_t2nd))
-
-
-
 
                 if epoch % 1 == 0:
                     
@@ -672,7 +613,7 @@ def training(n_epoch, act,args):
             gt_batch = torch.cat([t[..., -2:] for t in gt_channel_split], dim=-1)
 
             with torch.no_grad():
-                pred_batch, _ ,_= run_steps(x_batch, models, optimizers, connections, vae,
+                train_batch, pred_batch, _ , loss = run_steps(x_batch, models, optimizers, connections, vae,
                                                 inference=True, args=args)
                 
             
@@ -680,17 +621,17 @@ def training(n_epoch, act,args):
             ####
             # sum_loss += loss.data * args.vis_bs
             N+=1
-            
             pred_batch = pred_batch.detach().cpu().numpy()
+
+            train_batch = train_batch.detach().cpu().numpy()
+
             gt_batch = ims[:, 1:]
             gt_batch = torch.from_numpy(gt_batch.astype(np.float32)).to(args.device)  # .reshape(gt.shape[0], 1))
-
             gt_channel_split= torch.split(gt_batch, gt_batch.shape[-1] // args.num_views, dim=-1)
             gt_batch = torch.cat([t[..., -2:] for t in gt_channel_split], dim=-1)
             input_batch=torch.cat([t[..., :3] for t in gt_channel_split], dim=-1)
-
-            gt_batch = gt_batch.detach().cpu().numpy()
             input_batch = input_batch.detach().cpu().numpy()
+
         
             # print(input_batch.shape,pred_batch.shape,gt_batch.shape)
 
@@ -700,52 +641,98 @@ def training(n_epoch, act,args):
                     path=os.path.join(res_path, str(view_idx))
                     os.makedirs(path, exist_ok=True)
 
-                    for i in range(pred_batch.shape[1]):
-                        name = 'input_{0:02d}_{1:02d}.png'.format(iter , view_idx)
+
+                    for i in range(train_batch.shape[1]):
+                        name = 'input_{0:02d}_{1:02d}.png'.format(i + 1, view_idx)
                         file_name = os.path.join(path, name)
                         input_gt = np.uint8(input_batch[0, i, :, :, (view_idx * args.img_channel):(
                                     (view_idx + 1) * args.img_channel)] * 255)
                         input_gt = cv2.cvtColor(input_gt, cv2.COLOR_BGR2RGB)
                         cv2.imwrite(file_name, input_gt)
 
-
-                        name = 'pdt2n0_{0:02d}_{1:02d}.png'.format(iter, view_idx)
+                    for i in range(train_batch.shape[1]):
+                        name = 'gtmask_{0:02d}_{1:02d}.png'.format(i + 1, view_idx)
                         file_name = os.path.join(path, name)
-                        t2no_img_pd = pred_batch[0, i, :, :,
-                                (view_idx * 2):((view_idx *2) +1)]
-                        t2no_img_pd = ((t2no_img_pd * 255))                        
-                        cv2.imwrite(file_name, np.uint8(t2no_img_pd))
+                        mask_img_gt = train_batch[0, i, :, :,
+                                (view_idx * 3)+2:((view_idx *3)+3 )] 
+                        # print("Mask min/max:", mask_img_gt.min(), mask_img_gt.max())
+                        mask_img_gt = ((mask_img_gt * 255))                        
+                        cv2.imwrite(file_name, np.uint8(mask_img_gt))
 
-                        name = 'gtt2n0_{0:02d}_{1:02d}.png'.format(iter, view_idx)
+                    #gt dont need to multiply with mask because it wont have outliers
+                    for i in range(train_batch.shape[1]):
+                        name = 'gtt2n0_{0:02d}_{1:02d}.png'.format(i + 1, view_idx)
                         file_name = os.path.join(path, name)
-                        t2no_img_gt = gt_batch[0, i, :, :,
-                                (view_idx * 2):((view_idx *2) +1)]
+                        t2no_img_gt = train_batch[0, i, :, :,
+                                (view_idx * 3):((view_idx *3) +1)]
                         t2no_img_gt = ((t2no_img_gt * 255))                        
                         cv2.imwrite(file_name, np.uint8(t2no_img_gt))
 
-
-                        name = 'pdt2nd_{0:02d}_{1:02d}.png'.format(iter, view_idx)
+                    for i in range(train_batch.shape[1]):
+                        # name = 'gtdeltad_{0:02d}_{1:02d}.png'.format(i + 1, view_idx)
+                        name = 'gt2nd_{0:02d}_{1:02d}.png'.format(i + 1, view_idx)
                         file_name = os.path.join(path, name)
+                        t2nd_img_gt = train_batch[0, i, :, :,
+                                (view_idx * 3)+1:((view_idx *3)+2 )] 
+                        t2nd_img_gt = ((t2nd_img_gt * 255))                        
+                        cv2.imwrite(file_name, np.uint8(t2nd_img_gt))
 
+
+                    for i in range(pred_batch.shape[1]):
+                        name = 'pdmask_{0:02d}_{1:02d}.png'.format(i + 1, view_idx)
+                        file_name = os.path.join(path, name)
+                        mask_img_pred = pred_batch[0, i, :, :,
+                                (view_idx * 3)+2:((view_idx *3)+3 )] 
+                        mask_img_pred = ((mask_img_pred * 255))                        
+                        cv2.imwrite(file_name, np.uint8(mask_img_pred))
+
+
+                    for i in range(pred_batch.shape[1]):
+                        name = 'pdt2n0_raw__{0:02d}_{1:02d}.png'.format(i + 1, view_idx)
+                        file_name = os.path.join(path, name)
                         t2no_img_pd = pred_batch[0, i, :, :,
-                                (view_idx * 2):((view_idx *2) +1)]         
-                        t2nd_img_pd = pred_batch[0, i, :, :,
-                                (view_idx * 2)+1:((view_idx *2)+2 )]
-                        
-                        t2nd_final_pd    =   t2no_img_pd+    t2nd_img_pd    
-                        t2nd_final_pd = ((t2nd_final_pd * 255))  
-                        cv2.imwrite(file_name, np.uint8(t2nd_final_pd))
+                                (view_idx * 3):((view_idx *3) +1)]
+                        t2no_img_pd = ((t2no_img_pd * 255))                        
+                        cv2.imwrite(file_name, np.uint8(t2no_img_pd))
 
-                        name = 'gtt2nd_{0:02d}_{1:02d}.png'.format(iter, view_idx)
+
+                    for i in range(pred_batch.shape[1]):
+                        name = 'pdt2n0_{0:02d}_{1:02d}.png'.format(i + 1, view_idx)
                         file_name = os.path.join(path, name)
-                        t2nd_img_gt = gt_batch[0, i, :, :,
-                                (view_idx * 2)+1:((view_idx *2)+2 )]
-                        t2no_img_gt = gt_batch[0, i, :, :,
-                                (view_idx * 2):((view_idx *2) +1)]
+                        mask_img_pred = pred_batch[0, i, :, :,
+                                (view_idx * 3)+2:((view_idx *3)+3 )] 
+                        t2no_img_pd = pred_batch[0, i, :, :,
+                                (view_idx * 3):((view_idx *3) +1)]
+                        result_t2no_raw = np.where(mask_img_pred != 0, t2no_img_pd, 1)
+                        result_t2no = ((result_t2no_raw * 255))                        
+                        cv2.imwrite(file_name, np.uint8(result_t2no))
+
+
+                    for i in range(pred_batch.shape[1]):
+                        name_1 = 'pdt2nd_{0:02d}_{1:02d}.png'.format(i + 1, view_idx)
+                        # name_2 = 'pd_deltad{0:02d}_{1:02d}.png'.format(i + 1, view_idx)
+                        # name_3 = 'pd_t2nd_raw{0:02d}_{1:02d}.png'.format(i + 1, view_idx)
+                        file_name1 = os.path.join(path, name_1)
+                        # file_name2 = os.path.join(path, name_2)
+                        # file_name3 = os.path.join(path, name_3)
+                        mask_img_pred = pred_batch[0, i, :, :,
+                                (view_idx * 3)+2:((view_idx *3)+3 )] 
+                        deld_img_pd = pred_batch[0, i, :, :,
+                                (view_idx * 3)+1:((view_idx *3) +2)]
+
+                        # t2nod_img_pred = deld_img_pd + result_t2no_raw
+
+                        result_t2nd = np.where(mask_img_pred != 0, deld_img_pd, 1)
                         
-                        t2nd_final_gt   =   t2no_img_gt+    t2nd_img_gt    
-                        t2nd_final_gt = ((t2nd_final_gt * 255))                       
-                        cv2.imwrite(file_name, np.uint8(t2nd_final_gt))
+                        t2nd_img_pd = ((result_t2nd * 255)) 
+
+                        # deld_img_pd=((deld_img_pd*255))
+
+                        # raw_t2nd=((t2nod_img_pred*255))
+
+                        cv2.imwrite(file_name1, np.uint8(t2nd_img_pd))
+                        # cv2.imwrite(file_name2, np.uint8(deld_img_pd))
+                        # cv2.imwrite(file_name3, np.uint8(raw_t2nd))
 
                         iter+=1
             Total_eval_images+=pred_batch.shape[1]
@@ -819,21 +806,21 @@ if __name__ == "__main__":
     parser.add_argument('--model_type', type=str, default='ssta',help='ssta / vae')
     parser.add_argument('--data_name', type=str, default='ssta_2025')
     parser.add_argument('--act', type=str, default="relu", help='relu')
-    parser.add_argument('--mode', type=str, default="train", help='train / eval/transfer_learning')
-    parser.add_argument('--eval_mode', type=str, default='train', help='multi_step_eval / single_step_eval')
+    parser.add_argument('--mode', type=str, default="eval", help='train / eval/transfer_learning')
+    parser.add_argument('--eval_mode', type=str, default='multi_step_eval', help='multi_step_eval / single_step_eval')
 
     #ssta paramterts
     parser.add_argument('--num_views', type=int, default=2, help='num views')
-    parser.add_argument('--train_sequence', type=int, default=15)
-    parser.add_argument('--test_sequence', type=int, default=15)
+    parser.add_argument('--train_sequence', type=int, default=100)
+    parser.add_argument('--test_sequence', type=int, default=100)
 
     #the step of start index of sequence
-    parser.add_argument('--sequence_index_gap', type=int, default=10)
+    parser.add_argument('--sequence_index_gap', type=int, default=20)
 
     parser.add_argument('--n_epoch', type=int, default=2000, help='200')
     parser.add_argument('--continue_epoch', type=int, default=0, help='200')
 
-    parser.add_argument('--bs', type=int, default=2)
+    parser.add_argument('--bs', type=int, default=6)
     parser.add_argument('--vis_bs', type=int, default=2)
     parser.add_argument('--disp_eval_images', type=int, default=60)
     parser.add_argument('--save_eval_images', type=bool, default=True)
@@ -847,13 +834,13 @@ if __name__ == "__main__":
     parser.add_argument('--loss_fn', type=str, default='ssim', help='ce/ mse /bce/ split_mse/ detr/ssim')
 
     # parser.add_argument('--num_step', type=int, default=15)
-    parser.add_argument('--num_past', type=int, default=4)
+    parser.add_argument('--num_past', type=int, default=15)
 
     # RGB dataset
     parser.add_argument('--img_width', type=int, default=128, help='img width')
     parser.add_argument('--img_channel', type=int, default=3, help='img channel')
     parser.add_argument('--num_save_samples', type=int, default=10)
-    parser.add_argument('--num_hidden', type=str, default='128,64,32,16', help='64,64,64,64')
+    parser.add_argument('--num_hidden', type=str, default='64,64,64,64', help='64,64,64,64')
     parser.add_argument('--filter_size', type=int, default=3)
     parser.add_argument('--stride', type=int, default=1)
     parser.add_argument('--message_type', type=str, default='vae', help='normal, zeros, randn, raw_data, vae')
@@ -862,11 +849,11 @@ if __name__ == "__main__":
     parser.add_argument('--ssta_output_channels', type=int, default=2,help="channels - t2no/t2nd")
     #File paths
     #file to save ssta results
-    parser.add_argument('--gen_frm_dir', type=str, default=r'./Trained_models_images/ssim_combo_ssta_128_64_32_16_apr20_25_latent5')
-    parser.add_argument('--train_data_paths', type=str, default=r"./dataset_02/train")
-    parser.add_argument('--valid_data_paths', type=str, default=r"./dataset_02/test")
+    parser.add_argument('--gen_frm_dir', type=str, default=r'./Trained_models_images/ssim_combo_ssta_128_64_64_64_64_apr21_25_latent5')
+    parser.add_argument('--train_data_paths', type=str, default=r"./dataset_02/test")
+    parser.add_argument('--valid_data_paths', type=str, default=r"./dataset_02/val")
     parser.add_argument('--vae_ckpt_dir', type=str, default=r"./vae_file_latent5",help='None')
-    parser.add_argument('--ckpt_dir', type=str, default=r'./Trained_models_images/ssim_combo_ssta_128_64_32_16_apr20_25_latent5/SSTA_model/50', help='checkpoint dir')
+    parser.add_argument('--ckpt_dir', type=str, default=r'./Trained_models_images/ssim_combo_ssta_128_64_64_64_64_apr21_25_latent5/SSTA_model/145', help='checkpoint dir')
 
     args = parser.parse_args()
     args.gen_frm_dir = os.path.join(args.gen_frm_dir)
